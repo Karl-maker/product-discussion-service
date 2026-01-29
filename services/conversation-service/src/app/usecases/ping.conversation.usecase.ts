@@ -5,7 +5,6 @@ import { Conversation } from "../../domain/types/conversation.types";
 export interface PingConversationInput {
   id: string;
   userId: string;
-  entitlementKey: string;
 }
 
 export interface PingConversationOutput {
@@ -42,7 +41,7 @@ export class PingConversationUseCase {
     // Send usage event to SQS
     await this.sqsClient.sendUsageEvent({
       userId: input.userId,
-      entitlementKey: input.entitlementKey,
+      entitlementKey: "feature.conversation",
       amount: secondsElapsed,
       metadata: {
         conversationId: input.id,

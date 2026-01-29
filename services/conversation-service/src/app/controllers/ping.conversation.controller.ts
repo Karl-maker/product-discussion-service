@@ -17,16 +17,9 @@ export class PingConversationController {
       throw new Error("id is required in path");
     }
 
-    const { entitlementKey } = req.body || {};
-
-    if (!entitlementKey) {
-      throw new Error("entitlementKey is required");
-    }
-
     return await this.useCase.execute({
       id,
       userId: req.user.id,
-      entitlementKey,
     });
   };
 }
