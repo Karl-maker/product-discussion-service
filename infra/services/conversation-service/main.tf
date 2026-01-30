@@ -316,7 +316,7 @@ module "conversation_service_lambda" {
   source = "../../modules/lambda"
 
   function_name = "conversation-service"
-  handler       = "dist/handler/index.handler"
+  handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   filename      = abspath("${path.cwd}/services/conversation-service/function.zip")
   iam_role_arn  = module.conversation_service_iam_role.role_arn
@@ -338,7 +338,7 @@ module "conversation_service_sqs_lambda" {
   source = "../../modules/lambda"
 
   function_name = "conversation-service-sqs-processor"
-  handler       = "dist/handler/sqs-handler.handler"
+  handler       = "dist/sqs-handler.handler"
   runtime       = "nodejs20.x"
   filename      = abspath("${path.cwd}/services/conversation-service/function.zip")
   iam_role_arn  = module.conversation_service_iam_role.role_arn

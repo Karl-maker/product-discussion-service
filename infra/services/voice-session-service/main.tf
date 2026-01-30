@@ -116,7 +116,7 @@ module "voice_session_service_lambda" {
   source = "../../modules/lambda"
 
   function_name = "voice-session-service"
-  handler       = "dist/handler/index.handler"
+  handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   filename      = abspath("${path.cwd}/services/voice-session-service/function.zip")
   iam_role_arn  = module.voice_session_service_iam_role.role_arn

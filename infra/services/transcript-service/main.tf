@@ -117,7 +117,7 @@ module "transcript_service_lambda" {
   source = "../../modules/lambda"
 
   function_name = "transcript-service"
-  handler       = "dist/handler/index.handler"
+  handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   filename      = abspath("${path.cwd}/services/transcript-service/function.zip")
   iam_role_arn  = module.transcript_service_iam_role.role_arn
