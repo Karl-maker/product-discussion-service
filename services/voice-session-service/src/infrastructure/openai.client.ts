@@ -61,7 +61,7 @@ export class OpenAIClient {
           model: "gpt-4o-realtime-preview",
           instructions: instructions,
           voice: "coral",
-          temperature: 0.3,
+          temperature: 0.6,
         }),
       }
     );
