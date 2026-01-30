@@ -12,4 +12,4 @@ export interface ConversationPackage {
 
 export interface ConversationPackageFilters {
   category?: string;
-}
+} 
