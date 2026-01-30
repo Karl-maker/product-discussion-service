@@ -62,6 +62,12 @@ export async function apiHandler(event: APIGatewayProxyEvent) {
     console.log("Received event:", JSON.stringify(event, null, 2));
     
     const req = parseRequest(event);
+    
+    // Handle OPTIONS preflight requests
+    if (req.method === "OPTIONS") {
+      return response(200, {});
+    }
+    
     const actualPath = event.path || req.path;
     const normalizedPath = normalizePath(actualPath);
     
