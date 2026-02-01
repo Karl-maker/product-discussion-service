@@ -55,13 +55,13 @@ function findRouteHandler(
 export async function apiHandler(event: APIGatewayProxyEvent) {
   try {
     const req = parseRequest(event);
+    const actualPath = event.path || req.path;
+    const normalizedPath = normalizePath(actualPath);
 
     if (req.method === "OPTIONS") {
       return response(200, {});
     }
 
-    const actualPath = event.path || req.path;
-    const normalizedPath = normalizePath(actualPath);
     const pathParams: Record<string, string> = { ...req.pathParams };
 
     const isUsersRoute =
@@ -71,6 +71,12 @@ export async function apiHandler(event: APIGatewayProxyEvent) {
       const { getCurrentUserFromEvent } = await import("@libs/domain");
       user = getCurrentUserFromEvent(event, { required: true });
     }
+
+    console.log("Request", {
+      method: req.method,
+      path: normalizedPath,
+      userId: user?.id ?? undefined,
+    });
 
     const requestWithUser: RequestContext = {
       ...req,
@@ -82,6 +88,7 @@ export async function apiHandler(event: APIGatewayProxyEvent) {
     const handler = findRouteHandler(req.method, normalizedPath, pathParams);
 
     if (!handler) {
+      console.log("No handler found", { method: req.method, path: normalizedPath });
       return response(404, { message: "Route not found" });
     }
 
