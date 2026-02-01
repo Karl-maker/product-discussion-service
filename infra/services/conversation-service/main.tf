@@ -128,7 +128,7 @@ module "conversation_package_service_lambda" {
   function_name = "conversation-package-service"
   handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
-  filename      = abspath("${path.cwd}/../../services/conversation-package-service/function.zip")
+  filename      = abspath("${path.cwd}/services/conversation-package-service/function.zip")
   iam_role_arn  = module.conversation_package_service_iam_role.role_arn
 
   environment_variables = {
