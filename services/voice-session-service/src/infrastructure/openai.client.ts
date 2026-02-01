@@ -62,6 +62,13 @@ export class OpenAIClient {
           instructions: instructions,
           voice: "coral",
           temperature: 0.6,
+          audio: {
+            input: {
+              transcription: {
+                model: "gpt-4o-transcribe"
+              }
+            }
+          }
         }),
       }
     );
