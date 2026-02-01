@@ -1,0 +1,28 @@
+{
+  "name": "@services/conversation-user-service",
+  "version": "1.0.0",
+  "description": "Service for conversation user profile (language, targetLanguage, profession, timezone, country, purposeOfUsage)",
+  "main": "dist/handler/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "package": "esbuild src/handler/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js && zip function.zip dist/index.js",
+    "deploy": "echo Deploying conversation-user-service..."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.975.0",
+    "aws-lambda": "^1.0.7",
+    "esbuild": "^0.27.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.160",
+    "@types/node": "^25.0.10",
+    "typescript": "^5.9.3"
+  }
+}
