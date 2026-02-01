@@ -9,6 +9,6 @@ const {
 
 export const routes: Record<string, (req: RequestContext) => Promise<unknown>> = {
   "POST /users": createConversationUserController.handle,
-  "GET /users/{userId}": getConversationUserController.handle,
-  "PUT /users/{userId}": updateConversationUserController.handle,
+  "GET /users/me": getConversationUserController.handle,
+  "PUT /users/me": updateConversationUserController.handle,
 };

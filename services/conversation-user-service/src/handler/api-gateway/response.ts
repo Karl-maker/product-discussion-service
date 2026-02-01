@@ -32,6 +32,13 @@ export function errorResponse(error: unknown): APIGatewayProxyResult {
     });
   }
 
+  if (err.name === "AuthenticationError") {
+    return response(401, {
+      error: "UNAUTHORIZED",
+      message: err.message,
+    });
+  }
+
   return response(500, {
     error: "INTERNAL_ERROR",
     message: err.message || "An unexpected error occurred",

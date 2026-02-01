@@ -64,10 +64,17 @@ export async function apiHandler(event: APIGatewayProxyEvent) {
     const normalizedPath = normalizePath(actualPath);
     const pathParams: Record<string, string> = { ...req.pathParams };
 
+    let user: { id: string; role?: string } | null = null;
+    if (normalizedPath.startsWith("users")) {
+      const { requireUser } = await import("@libs/domain");
+      user = requireUser(event);
+    }
+
     const requestWithUser: RequestContext = {
       ...req,
       path: normalizedPath,
       pathParams,
+      user: user ?? undefined,
     };
 
     const handler = findRouteHandler(req.method, normalizedPath, pathParams);

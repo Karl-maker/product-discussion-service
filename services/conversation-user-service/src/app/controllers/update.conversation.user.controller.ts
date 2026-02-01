@@ -5,10 +5,12 @@ export class UpdateConversationUserController {
   constructor(private readonly useCase: UpdateConversationUserUseCase) {}
 
   handle = async (req: RequestContext) => {
-    const userId = req.pathParams?.userId;
-    if (!userId) {
-      throw new Error("userId is required in path");
+    if (!req.user?.id) {
+      const err = new Error("Unauthorized");
+      (err as Error & { name: string }).name = "AuthenticationError";
+      throw err;
     }
+    const userId = req.user.id;
 
     const body = (req.body ?? {}) as Record<string, unknown>;
     const { language, targetLanguage, profession, timezone, country, purposeOfUsage } = body;
