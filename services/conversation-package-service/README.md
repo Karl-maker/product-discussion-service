@@ -20,11 +20,11 @@ CRUD service for conversation packages and transcript analysis. Packages have na
 
 ### POST /packages
 
-Create a new conversation package.
+Create one or many conversation packages.
 
 **Auth:** Optional (no JWT required).
 
-**Request body:**
+**Request body:** Either a **single package object** or an **array of package objects**. Each package has:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -51,7 +51,7 @@ Each target:
 | `check` | string | — | Criterion the AI uses to decide if the target was met |
 | `amount` | number | No | Optional numeric requirement |
 
-**Example request:**
+**Example – single package:**
 
 ```json
 {
@@ -71,7 +71,21 @@ Each target:
 }
 ```
 
+**Example – many packages at once:**
+
+```json
+[
+  { "name": "Spanish greetings", "category": "language", "tags": ["spanish"], "conversations": [] },
+  { "name": "French basics", "category": "language", "tags": ["french"], "conversations": [] }
+]
+```
+
 **Response:** `201 Created`
+
+- **Single package:** response body is the created package object.
+- **Array of packages:** response body is `{ "data": [ package, ... ] }` (empty array returns `{ "data": [] }`).
+
+Single-package response:
 
 ```json
 {
@@ -83,6 +97,17 @@ Each target:
   "conversations": [...],
   "createdAt": "2026-01-30T12:00:00.000Z",
   "updatedAt": "2026-01-30T12:00:00.000Z"
+}
+```
+
+Bulk response:
+
+```json
+{
+  "data": [
+    { "id": "pkg-xxx", "name": "Spanish greetings", "category": "language", ... },
+    { "id": "pkg-yyy", "name": "French basics", "category": "language", ... }
+  ]
 }
 ```
 
