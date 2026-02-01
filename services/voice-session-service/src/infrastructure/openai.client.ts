@@ -61,14 +61,7 @@ export class OpenAIClient {
           model: "gpt-4o-realtime-preview",
           instructions: instructions,
           voice: "coral",
-          temperature: 0.6,
-          audio: {
-            input: {
-              transcription: {
-                model: "gpt-4o-transcribe"
-              }
-            }
-          }
+          temperature: 0.6
         }),
       }
     );
