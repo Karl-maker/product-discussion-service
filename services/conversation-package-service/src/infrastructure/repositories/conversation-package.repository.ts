@@ -105,6 +105,12 @@ export class ConversationPackageRepository {
 
     const items = (result.Items || []).map((item) => this.mapToDomain(item));
 
+    items.sort((a, b) => {
+      const t1 = new Date(a.createdAt).getTime();
+      const t2 = new Date(b.createdAt).getTime();
+      return t1 - t2;
+    });
+
     const startIndex = (pageNumber - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const paginatedItems = items.slice(startIndex, endIndex);
