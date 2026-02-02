@@ -3,6 +3,8 @@ import { VoiceSessionRepository } from "../../infrastructure/repositories/voice-
 
 export interface CreateVoiceSessionInput {
   instructions?: string;
+  /** When true, session returns text-only output (no audio); default false = audio output */
+  textOnlyOutput?: boolean;
   userId?: string;
 }
 
@@ -46,7 +48,8 @@ export class CreateVoiceSessionUseCase {
     // Create session with OpenAI
     const session = await this.openAIClient.createSession(
       combinedInstructions,
-      sessionId
+      sessionId,
+      { textOnlyOutput: input.textOnlyOutput === true }
     );
 
     // Calculate TTL (30 days from now)

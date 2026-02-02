@@ -48,9 +48,15 @@ Creates a new OpenAI Realtime API voice session.
 **Request Body:**
 ```json
 {
-  "instructions": "Optional custom instructions to append to the template"
+  "instructions": "Optional custom instructions to append to the template",
+  "text_only": false
 }
 ```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `instructions` | string | (template) | Custom instructions appended to the built-in template. |
+| `text_only` | boolean | `false` | When `true`, session uses `output_modalities: ["text"]` (model returns text only, no audio). When `false` or omitted, session returns audio as usual. |
 
 **Response:**
 ```json

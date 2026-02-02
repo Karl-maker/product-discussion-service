@@ -8,6 +8,11 @@ export interface CreateSessionInput {
   instructions?: string;
 }
 
+export interface CreateSessionOptions {
+  /** When true, request output_modalities: ["text"] (no audio from model); default = audio output */
+  textOnlyOutput?: boolean;
+}
+
 export interface CreateSessionOutput {
   client_secret: string;
   expires_at: string;
@@ -43,10 +48,24 @@ export class OpenAIClient {
 
   async createSession(
     instructions: string,
-    sessionId: string
+    sessionId: string,
+    options: CreateSessionOptions = {}
   ): Promise<CreateSessionOutput> {
     if (!this.apiKey) {
       throw new Error("OpenAIClient not initialized");
+    }
+
+    const payload: Record<string, unknown> = {
+      model: "gpt-4o-mini-realtime-preview",
+      instructions,
+      voice: "coral",
+      temperature: 0.6,
+      input_audio_transcription: {
+        model: "gpt-4o-transcribe",
+      },
+    };
+    if (options.textOnlyOutput === true) {
+      payload.output_modalities = ["text"];
     }
 
     const response = await fetch(
@@ -57,15 +76,7 @@ export class OpenAIClient {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "gpt-4o-realtime-preview",
-          instructions: instructions,
-          voice: "coral",
-          temperature: 0.6,
-          input_audio_transcription: {
-            model: "gpt-4o-transcribe"
-          }
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
