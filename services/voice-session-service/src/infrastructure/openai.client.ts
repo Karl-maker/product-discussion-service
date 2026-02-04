@@ -60,7 +60,7 @@ export class OpenAIClient {
       instructions,
       voice: "coral",
       // Lower = more controlled, less fast / excitable speech
-      temperature: 0.5,
+      temperature: 0.6,
       input_audio_transcription: {
         model: "gpt-4o-transcribe",
       },
