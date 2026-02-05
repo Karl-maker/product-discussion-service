@@ -1,4 +1,4 @@
-import type { TranscriptAnalysisResult, TranscriptFeedbackItem } from "../types/package.types";
+import type { TranscriptAnalysisResult, TranscriptFeedbackItem, TargetLanguageWord } from "../types/package.types";
 
 /**
  * Validates that the parsed AI response matches the expected schema.
@@ -54,5 +54,40 @@ export function validateTranscriptAnalysisSchema(value: unknown): TranscriptAnal
     });
   }
 
-  return { feedback };
+  const result: TranscriptAnalysisResult = { feedback };
+
+  if (obj.wordsUsed !== undefined) {
+    if (!Array.isArray(obj.wordsUsed)) {
+      throw new Error("Analysis response 'wordsUsed' must be an array when present");
+    }
+    const wordsArr = obj.wordsUsed as unknown[];
+    if (wordsArr.length > 50) {
+      throw new Error("Analysis response 'wordsUsed' must contain at most 50 items");
+    }
+    const wordsUsed: TargetLanguageWord[] = [];
+    for (let i = 0; i < wordsArr.length; i++) {
+      const item = wordsArr[i];
+      if (item === null || typeof item !== "object") {
+        throw new Error(`Analysis wordsUsed[${i}] must be an object`);
+      }
+      const row = item as Record<string, unknown>;
+      if (typeof row.word !== "string") {
+        throw new Error(`Analysis wordsUsed[${i}].word must be a string`);
+      }
+      if (typeof row.pronunciation !== "string") {
+        throw new Error(`Analysis wordsUsed[${i}].pronunciation must be a string`);
+      }
+      if (typeof row.meaning !== "string") {
+        throw new Error(`Analysis wordsUsed[${i}].meaning must be a string`);
+      }
+      wordsUsed.push({
+        word: row.word as string,
+        pronunciation: row.pronunciation as string,
+        meaning: row.meaning as string,
+      });
+    }
+    result.wordsUsed = wordsUsed;
+  }
+
+  return result;
 }

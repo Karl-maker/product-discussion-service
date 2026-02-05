@@ -34,7 +34,16 @@ export interface TranscriptFeedbackItem {
   targets: string[];
 }
 
+/** One word the user said in the target language (when targetLanguage is requested). */
+export interface TargetLanguageWord {
+  word: string;
+  pronunciation: string;
+  meaning: string;
+}
+
 /** Validated response from the analyze-transcript endpoint / OpenAI. */
 export interface TranscriptAnalysisResult {
   feedback: TranscriptFeedbackItem[];
+  /** Present when targetLanguage was provided: words the user said in that language. */
+  wordsUsed?: TargetLanguageWord[];
 }

@@ -240,6 +240,7 @@ Analyze a transcript against a list of targets using OpenAI GPT-4o. Returns ~3 f
 | `topicKey` | string | Yes | Topic identifier (e.g. conversation or scenario key) |
 | `targets` | array | Yes | Targets to evaluate (each with `key`, `description`, `check`, optional `amount`) |
 | `transcript` | string | Yes | Full transcript text to analyze |
+| `targetLanguage` | string | No | If set, response includes `wordsUsed`: words the user said in this language, with pronunciation and meaning |
 
 **Example request:**
 
@@ -255,18 +256,50 @@ Analyze a transcript against a list of targets using OpenAI GPT-4o. Returns ~3 f
 }
 ```
 
+With target language (e.g. Spanish):
+
+```json
+{
+  "conversationPackageId": "pkg-xxx",
+  "topicKey": "greetings",
+  "targetLanguage": "Spanish",
+  "targets": [
+    { "key": "say-hola", "description": "Say hola", "check": "user said hola or equivalent at least once", "amount": 1 }
+  ],
+  "transcript": "User: Hola. AI: ¡Hola! ¿Cómo estás? User: Muy bien, gracias."
+}
+```
+
 **Response:** `201 Created`
 
 - The service calls OpenAI GPT-4o (JSON mode) to analyze the transcript.
 - The AI returns ~3 feedback objects. Each has `content`, `isPositive`, and `targets` (array of target **keys** that met their `check`; keys not met are omitted).
+- When `targetLanguage` is provided, the response includes `wordsUsed`: an array of objects for words the user said in that language. Each object has `word`, `pronunciation`, and `meaning`.
 - The response is validated; if the AI returns invalid JSON or wrong schema, the service returns an error and does not save.
 - The result is stored by `userId`, `conversationPackageId`, and `topicKey` for later retrieval.
+
+**Response body (without target language):**
 
 ```json
 {
   "feedback": [
     { "content": "You used a clear greeting.", "isPositive": true, "targets": ["say-hello"] },
     { "content": "Try to avoid informal slang in this context.", "isPositive": false, "targets": [] }
+  ],
+  "saved": true
+}
+```
+
+**Response body (with `targetLanguage`):**
+
+```json
+{
+  "feedback": [
+    { "content": "You said hola clearly.", "isPositive": true, "targets": ["say-hola"] }
+  ],
+  "wordsUsed": [
+    { "word": "Hola", "pronunciation": "/ˈola/", "meaning": "Hello" },
+    { "word": "gracias", "pronunciation": "/ˈɡraθjas/", "meaning": "thank you" }
   ],
   "saved": true
 }
@@ -303,6 +336,9 @@ List transcript analysis results for the current user. Results are stored by use
       "result": {
         "feedback": [
           { "content": "...", "isPositive": true, "targets": ["say-hello"] }
+        ],
+        "wordsUsed": [
+          { "word": "Hola", "pronunciation": "/ˈola/", "meaning": "Hello" }
         ]
       },
       "createdAt": "2026-01-30T12:00:00.000Z"
@@ -319,10 +355,13 @@ The service validates the OpenAI response for `POST /packages/analyze-transcript
 
 - Root must be an object with a `feedback` array.
 - `feedback` must have between 1 and 10 items.
-- Each item must have:
+- Each feedback item must have:
   - `content`: string
   - `isPositive`: boolean
   - `targets`: array of strings (target keys only)
+- When the request included `targetLanguage`, the AI may return an optional `wordsUsed` array. If present, it is validated:
+  - `wordsUsed` must be an array of at most 50 items.
+  - Each item must have `word`, `pronunciation`, and `meaning` (all strings).
 
 If validation fails, an error is returned and the result is not saved.
 

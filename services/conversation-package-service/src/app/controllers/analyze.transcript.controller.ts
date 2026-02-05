@@ -18,6 +18,7 @@ export class AnalyzeTranscriptController {
       topicKey,
       targets,
       transcript,
+      targetLanguage,
     } = body;
 
     if (!conversationPackageId || typeof conversationPackageId !== "string") {
@@ -52,12 +53,20 @@ export class AnalyzeTranscriptController {
       });
     }
 
+    const targetLanguageStr =
+      targetLanguage === undefined || targetLanguage === null
+        ? undefined
+        : typeof targetLanguage === "string"
+          ? targetLanguage.trim() || undefined
+          : undefined;
+
     return this.useCase.execute({
       userId,
       conversationPackageId,
       topicKey,
       targets: validTargets,
       transcript,
+      targetLanguage: targetLanguageStr,
     });
   };
 }
