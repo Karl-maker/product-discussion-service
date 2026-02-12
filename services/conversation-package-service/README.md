@@ -276,7 +276,7 @@ With target language (e.g. Spanish):
 - The AI returns ~3 feedback objects. Each has `content`, `isPositive`, and `targets` (array of target **keys** that met their `check`; keys not met are omitted).
 - When `targetLanguage` is provided, the response may include `wordsUsed` only if the user said at least one word strictly in that language. `wordsUsed` contains only words that are actually in the target language (words from other languages are never included). If the user said nothing in the target language, `wordsUsed` is omitted. Each object has `word`, `pronunciation`, and `meaning`.
 - The response is validated; if the AI returns invalid JSON or wrong schema, the service returns an error and does not save.
-- The result is stored by `userId`, `conversationPackageId`, and `topicKey` for later retrieval.
+- The result is stored by `userId`, `conversationPackageId`, and `topicKey` for later retrieval. Each stored record includes `feedback`, `wordsUsed` (if any), the `targetLanguage` requested, `targetsHit` (targets that were met, with key, description, check, amount), and `targetsMissed` (targets not met, same detail). Items expire after 90 days (DynamoDB TTL).
 
 **Response body (without target language):**
 
@@ -309,7 +309,7 @@ With target language (e.g. Spanish):
 
 ### GET /packages/analysis-results
 
-List transcript analysis results for the current user. Results are stored by userId and can be filtered by package and topic.
+List transcript analysis results for the current user. Results are stored by userId and can be filtered by package and topic. Stored records include `feedback`, `wordsUsed`, `targetLanguage`, `targetsHit` and `targetsMissed` (each an array of targets with `key`, `description`, `check`, `amount`). Results expire after 90 days (TTL).
 
 **Auth:** Required (Bearer JWT).
 
@@ -341,6 +341,13 @@ List transcript analysis results for the current user. Results are stored by use
           { "word": "Hola", "pronunciation": "/ˈola/", "meaning": "Hello" }
         ]
       },
+      "targetLanguage": "Spanish",
+      "targetsHit": [
+        { "key": "say-hola", "description": "Say hola", "check": "user said hola or equivalent at least once", "amount": 1 }
+      ],
+      "targetsMissed": [
+        { "key": "use-formal-you", "description": "Use formal you (usted)", "check": "user used usted form", "amount": 1 }
+      ],
       "createdAt": "2026-01-30T12:00:00.000Z"
     }
   ]

@@ -1,13 +1,24 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import type { TranscriptAnalysisResult } from "../../domain/types/package.types";
+import type { ConversationTarget, TranscriptAnalysisResult } from "../../domain/types/package.types";
+
+/** Stored target with key, description, check, amount (for targetsHit / targetsMissed). */
+export type StoredTarget = ConversationTarget;
 
 export interface AnalysisResultRecord {
   userId: string;
   conversationPackageId: string;
   topicKey: string;
   result: TranscriptAnalysisResult;
+  /** Language targeted for words-used analysis (optional). */
+  targetLanguage?: string;
+  /** Targets that were met (full detail: key, description, check, amount). */
+  targetsHit: StoredTarget[];
+  /** Targets that were not met (full detail). */
+  targetsMissed: StoredTarget[];
   createdAt: string;
+  /** DynamoDB TTL: Unix seconds; items expire after 90 days. */
+  ttl: number;
 }
 
 export class AnalysisResultRepository {
@@ -36,7 +47,11 @@ export class AnalysisResultRepository {
           conversationPackageId: record.conversationPackageId,
           topicKey: record.topicKey,
           result: record.result,
+          targetLanguage: record.targetLanguage,
+          targetsHit: record.targetsHit,
+          targetsMissed: record.targetsMissed,
           createdAt: now,
+          ttl: record.ttl,
         },
       })
     );
@@ -74,7 +89,11 @@ export class AnalysisResultRepository {
       conversationPackageId: string;
       topicKey: string;
       result: TranscriptAnalysisResult;
+      targetLanguage?: string;
+      targetsHit?: StoredTarget[];
+      targetsMissed?: StoredTarget[];
       createdAt: string;
+      ttl?: number;
     }>;
 
     return items.map((item) => ({
@@ -82,7 +101,27 @@ export class AnalysisResultRepository {
       conversationPackageId: item.conversationPackageId,
       topicKey: item.topicKey,
       result: item.result,
+      targetLanguage: item.targetLanguage,
+      targetsHit: normalizeStoredTargets(item.targetsHit),
+      targetsMissed: normalizeStoredTargets(item.targetsMissed),
       createdAt: item.createdAt,
+      ttl: item.ttl ?? 0,
     }));
   }
+}
+
+function normalizeStoredTargets(arr: unknown): StoredTarget[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.map((t) => {
+    if (typeof t === "string") {
+      return { key: t, description: "", check: "" };
+    }
+    const o = t as Record<string, unknown>;
+    return {
+      key: String(o.key ?? ""),
+      description: String(o.description ?? ""),
+      check: String(o.check ?? ""),
+      amount: typeof o.amount === "number" ? o.amount : undefined,
+    };
+  });
 }
