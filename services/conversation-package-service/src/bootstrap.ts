@@ -11,6 +11,7 @@ import { ListAnalysisResultsUseCase } from "./app/usecases/list.analysis.results
 import { CreatePackageController } from "./app/controllers/create.package.controller";
 import { GetPackageController } from "./app/controllers/get.package.controller";
 import { ListPackagesController } from "./app/controllers/list.packages.controller";
+import { ListMyPackagesController } from "./app/controllers/list.my.packages.controller";
 import { UpdatePackageController } from "./app/controllers/update.package.controller";
 import { DeletePackageController } from "./app/controllers/delete.package.controller";
 import { AnalyzeTranscriptController } from "./app/controllers/analyze.transcript.controller";
@@ -54,6 +55,7 @@ export function bootstrap() {
   const createPackageController = new CreatePackageController(createPackageUseCase);
   const getPackageController = new GetPackageController(getPackageUseCase);
   const listPackagesController = new ListPackagesController(listPackagesUseCase);
+  const listMyPackagesController = new ListMyPackagesController(listPackagesUseCase);
   const updatePackageController = new UpdatePackageController(updatePackageUseCase);
   const deletePackageController = new DeletePackageController(deletePackageUseCase);
   const analyzeTranscriptController = new AnalyzeTranscriptController(analyzeTranscriptUseCase);
@@ -63,6 +65,7 @@ export function bootstrap() {
     createPackageController,
     getPackageController,
     listPackagesController,
+    listMyPackagesController,
     updatePackageController,
     deletePackageController,
     analyzeTranscriptController,

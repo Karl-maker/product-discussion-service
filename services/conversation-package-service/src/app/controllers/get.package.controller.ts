@@ -10,7 +10,7 @@ export class GetPackageController {
       throw new Error("id is required in path");
     }
 
-    const pkg = await this.useCase.execute({ id });
+    const pkg = await this.useCase.execute({ id, currentUserId: req.user?.id });
     if (!pkg) {
       throw new Error("Package not found");
     }

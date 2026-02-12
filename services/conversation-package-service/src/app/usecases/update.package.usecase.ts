@@ -1,5 +1,9 @@
 import { ConversationPackageRepository } from "../../infrastructure/repositories/conversation-package.repository";
-import type { ConversationPackage, PackageConversation } from "../../domain/types/package.types";
+import type {
+  ConversationPackage,
+  PackageConversation,
+  PackageNotes,
+} from "../../domain/types/package.types";
 
 export interface UpdatePackageInput {
   id: string;
@@ -8,6 +12,9 @@ export interface UpdatePackageInput {
   category?: string;
   tags?: string[];
   conversations?: PackageConversation[];
+  notes?: PackageNotes;
+  language?: string;
+  currentUserId?: string;
 }
 
 export class UpdatePackageUseCase {
@@ -16,6 +23,9 @@ export class UpdatePackageUseCase {
   async execute(input: UpdatePackageInput): Promise<ConversationPackage> {
     const existing = await this.repository.findById(input.id);
     if (!existing) {
+      throw new Error("Package not found");
+    }
+    if (existing.userId && existing.userId !== input.currentUserId) {
       throw new Error("Package not found");
     }
 
@@ -30,6 +40,9 @@ export class UpdatePackageUseCase {
       createdAt: existing.createdAt,
       updatedAt: now,
     };
+    pkg.notes = input.notes !== undefined ? input.notes : existing.notes;
+    pkg.userId = existing.userId;
+    pkg.language = input.language !== undefined ? input.language : existing.language;
 
     await this.repository.save(pkg);
     return pkg;

@@ -1,5 +1,9 @@
 import { ConversationPackageRepository } from "../../infrastructure/repositories/conversation-package.repository";
-import type { ConversationPackage, PackageConversation } from "../../domain/types/package.types";
+import type {
+  ConversationPackage,
+  PackageConversation,
+  PackageNotes,
+} from "../../domain/types/package.types";
 
 export interface CreatePackageInput {
   name: string;
@@ -7,6 +11,9 @@ export interface CreatePackageInput {
   category: string;
   tags: string[];
   conversations: PackageConversation[];
+  notes?: PackageNotes;
+  userId?: string;
+  language?: string;
 }
 
 export class CreatePackageUseCase {
@@ -26,6 +33,9 @@ export class CreatePackageUseCase {
       createdAt: now,
       updatedAt: now,
     };
+    if (input.notes !== undefined) pkg.notes = input.notes;
+    if (input.userId !== undefined) pkg.userId = input.userId;
+    if (input.language !== undefined) pkg.language = input.language;
 
     await this.repository.save(pkg);
     return pkg;
