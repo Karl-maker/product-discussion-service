@@ -1,5 +1,6 @@
 import { OpenAIClient } from "../../infrastructure/openai.client";
-import { VoiceSessionRepository } from "../../infrastructure/repositories/voice-session.repository";
+import type { VoiceSessionQueue } from "../../infrastructure/voice-session.queue";
+import type { VoiceSessionRecord } from "../../infrastructure/repositories/voice-session.repository";
 
 export interface CreateVoiceSessionInput {
   instructions?: string;
@@ -25,7 +26,7 @@ Stay strictly on the current topic. Do not drift into other subjects. Keep repli
 export class CreateVoiceSessionUseCase {
   constructor(
     private readonly openAIClient: OpenAIClient,
-    private readonly sessionRepository: VoiceSessionRepository
+    private readonly voiceSessionQueue: VoiceSessionQueue
   ) {}
 
   async execute(
@@ -58,14 +59,16 @@ export class CreateVoiceSessionUseCase {
     ttlDate.setDate(ttlDate.getDate() + 30);
     const ttl = Math.floor(ttlDate.getTime() / 1000);
 
-    // Save session record to DynamoDB
-    await this.sessionRepository.save({
+    const record: VoiceSessionRecord = {
       sessionId: session.session_id,
       userId: input.userId,
       createdAt: now.toISOString(),
       expiresAt: session.expires_at,
-      ttl: ttl,
-    });
+      ttl,
+    };
+
+    // Send to queue for async storage to DynamoDB
+    await this.voiceSessionQueue.send(record);
 
     return {
       client_secret: session.client_secret,

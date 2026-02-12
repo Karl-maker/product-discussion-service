@@ -74,6 +74,18 @@ resource "aws_dynamodb_table" "voice_sessions" {
   }
 }
 
+# SQS Queue for voice sessions to be stored (consumer writes to DynamoDB)
+resource "aws_sqs_queue" "voice_session_queue" {
+  name                       = "${var.project_name}-${var.environment}-voice-session-queue"
+  visibility_timeout_seconds  = 60
+  message_retention_seconds   = 86400
+  receive_wait_time_seconds   = 0
+  tags = {
+    Environment = var.environment
+    Service     = "voice-session-service"
+  }
+}
+
 # IAM Role for Voice Session Service Lambda
 module "voice_session_service_iam_role" {
   source = "../../modules/lambda_iam_role"
@@ -111,6 +123,28 @@ resource "aws_iam_role_policy" "secrets_manager" {
   })
 }
 
+# IAM Policy for SQS: send (from create) and receive/delete (from queue consumer)
+resource "aws_iam_role_policy" "sqs" {
+  name = "voice-session-service-sqs-${var.environment}"
+  role = module.voice_session_service_iam_role.role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action  = ["sqs:SendMessage"]
+        Resource = [aws_sqs_queue.voice_session_queue.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action  = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Resource = [aws_sqs_queue.voice_session_queue.arn]
+      }
+    ]
+  })
+}
+
 # Lambda Function
 module "voice_session_service_lambda" {
   source = "../../modules/lambda"
@@ -122,10 +156,18 @@ module "voice_session_service_lambda" {
   iam_role_arn  = module.voice_session_service_iam_role.role_arn
 
   environment_variables = {
-    VOICE_SESSIONS_TABLE = aws_dynamodb_table.voice_sessions.name
-    PROJECT_NAME         = var.project_name
-    ENVIRONMENT          = var.environment
+    VOICE_SESSIONS_TABLE   = aws_dynamodb_table.voice_sessions.name
+    VOICE_SESSION_QUEUE_URL = aws_sqs_queue.voice_session_queue.url
+    PROJECT_NAME           = var.project_name
+    ENVIRONMENT            = var.environment
   }
+}
+
+# SQS event source: invoke Lambda when messages arrive (store to DynamoDB)
+resource "aws_lambda_event_source_mapping" "voice_session_queue" {
+  event_source_arn = aws_sqs_queue.voice_session_queue.arn
+  function_name    = module.voice_session_service_lambda.function_name
+  batch_size       = 10
 }
 
 # API Gateway Integration
