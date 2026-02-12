@@ -74,11 +74,11 @@ resource "aws_dynamodb_table" "voice_sessions" {
   }
 }
 
-# SQS FIFO Queue for voice sessions (deduplication by userId)
+# SQS FIFO Queue for voice sessions (deduplication by userId via MessageDeduplicationId)
 resource "aws_sqs_queue" "voice_session_queue" {
   name                        = "${var.project_name}-${var.environment}-voice-session-queue.fifo"
   fifo_queue                  = true
-  content_based_deduplication  = false
+  content_based_deduplication  = true
   visibility_timeout_seconds  = 60
   message_retention_seconds   = 86400
   receive_wait_time_seconds   = 0
