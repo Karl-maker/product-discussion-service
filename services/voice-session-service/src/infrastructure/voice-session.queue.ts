@@ -18,10 +18,14 @@ export class SQSVoiceSessionQueue implements VoiceSessionQueue {
   }
 
   async send(record: VoiceSessionRecord): Promise<void> {
+    const dedupeId = record.userId ?? record.sessionId;
+    const groupId = record.userId ?? "default";
     await this.client.send(
       new SendMessageCommand({
         QueueUrl: this.queueUrl,
         MessageBody: JSON.stringify(record),
+        MessageDeduplicationId: dedupeId,
+        MessageGroupId: groupId,
       })
     );
   }

@@ -74,9 +74,11 @@ resource "aws_dynamodb_table" "voice_sessions" {
   }
 }
 
-# SQS Queue for voice sessions to be stored (consumer writes to DynamoDB)
+# SQS FIFO Queue for voice sessions (deduplication by userId)
 resource "aws_sqs_queue" "voice_session_queue" {
-  name                       = "${var.project_name}-${var.environment}-voice-session-queue"
+  name                        = "${var.project_name}-${var.environment}-voice-session-queue.fifo"
+  fifo_queue                  = true
+  content_based_deduplication  = false
   visibility_timeout_seconds  = 60
   message_retention_seconds   = 86400
   receive_wait_time_seconds   = 0
