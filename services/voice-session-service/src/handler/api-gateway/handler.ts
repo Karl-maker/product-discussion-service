@@ -1,4 +1,5 @@
-import { APIGatewayProxyEvent } from "aws-lambda";
+import type { APIGatewayProxyEvent } from "aws-lambda";
+import { getCurrentUserFromEvent } from "@libs/domain";
 import { parseRequest } from "./parse-request";
 import { routes } from "./routes";
 import { response, errorResponse } from "./response";
@@ -71,21 +72,13 @@ export async function apiHandler(event: APIGatewayProxyEvent) {
     const actualPath = event.path || req.path;
     const normalizedPath = normalizePath(actualPath);
     
-    // Get user from JWT if available (optional for voice sessions)
-    let user: { id: string; role?: string } | null = null;
-    try {
-      const { requireUser } = await import("@libs/domain");
-      user = requireUser(event);
-    } catch (error) {
-      // User authentication is optional for voice sessions
-      console.log("No user authentication provided, proceeding without user context");
-    }
-    
+    // Get user from JWT when Authorization header is present (optional for voice sessions)
+    const user = getCurrentUserFromEvent(event, { required: false });
     const requestWithUser = {
       ...req,
       path: normalizedPath,
       pathParams: req.pathParams || {},
-      user: user || undefined,
+      user: user ?? undefined,
     };
     
     const handler = findRouteHandler(req.method, normalizedPath, requestWithUser.pathParams);
