@@ -101,13 +101,15 @@ export class ConversationPackageRepository {
 
     const filterExpressions: string[] = [];
     const expressionAttributeValues: Record<string, unknown> = {};
+    const expressionAttributeNames: Record<string, string> = {};
 
     if (filters.category) {
       filterExpressions.push("category = :category");
       expressionAttributeValues[":category"] = filters.category;
     }
     if (filters.language) {
-      filterExpressions.push("language = :language");
+      expressionAttributeNames["#lang"] = "language";
+      filterExpressions.push("#lang = :language");
       expressionAttributeValues[":language"] = filters.language;
     }
 
@@ -117,6 +119,7 @@ export class ConversationPackageRepository {
         ...(filterExpressions.length > 0 && {
           FilterExpression: filterExpressions.join(" AND "),
           ExpressionAttributeValues: expressionAttributeValues,
+          ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
         }),
         Limit: pageSize * pageNumber * 3,
       })
