@@ -38,7 +38,8 @@ export class UserPackageRepository {
     const result = await this.client.send(
       new ScanCommand({
         TableName: this.tableName,
-        FilterExpression: "userId = :uid AND language = :lang",
+        FilterExpression: "userId = :uid AND #lang = :lang",
+        ExpressionAttributeNames: { "#lang": "language" },
         ExpressionAttributeValues: { ":uid": userId, ":lang": language },
         Limit: 2,
       })

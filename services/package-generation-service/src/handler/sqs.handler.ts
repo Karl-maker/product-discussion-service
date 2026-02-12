@@ -7,10 +7,19 @@ function parseMessage(body: string): SessionMessage | null {
     const parsed = JSON.parse(body) as Record<string, unknown>;
     const sessionId = parsed.sessionId;
     if (typeof sessionId !== "string") return null;
+    const userId = parsed.userId;
+    const lang =
+      typeof parsed.targetLanguage === "string"
+        ? parsed.targetLanguage
+        : typeof parsed.language === "string"
+          ? parsed.language
+          : typeof parsed.target_language === "string"
+            ? parsed.target_language
+            : undefined;
     return {
       sessionId,
-      userId: typeof parsed.userId === "string" ? parsed.userId : undefined,
-      targetLanguage: typeof parsed.targetLanguage === "string" ? parsed.targetLanguage : undefined,
+      userId: typeof userId === "string" ? userId : undefined,
+      targetLanguage: lang && lang.length > 0 ? lang : undefined,
       createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : new Date().toISOString(),
       expiresAt: typeof parsed.expiresAt === "string" ? parsed.expiresAt : undefined,
       ttl: typeof parsed.ttl === "number" ? parsed.ttl : undefined,
@@ -29,6 +38,7 @@ export async function sqsHandler(event: SQSEvent): Promise<{ batchItemFailures: 
   for (const record of event.Records) {
     const message = parseMessage(record.body);
     if (!message) {
+      console.warn("Package generation: invalid or missing sessionId in SQS message", { messageId: record.messageId, bodyPreview: record.body?.substring?.(0, 200) });
       batchItemFailures.push({ itemIdentifier: record.messageId });
       continue;
     }

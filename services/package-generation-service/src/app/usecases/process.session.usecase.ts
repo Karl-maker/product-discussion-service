@@ -24,6 +24,11 @@ export class ProcessSessionUseCase {
     const language = (message.targetLanguage ?? "").trim().toLowerCase();
 
     if (!userId || !language) {
+      if (!userId) {
+        console.warn("Package generation: skipping session – missing userId", { sessionId: message.sessionId });
+      } else {
+        console.warn("Package generation: skipping session – missing or empty targetLanguage", { sessionId: message.sessionId, userId });
+      }
       return;
     }
 
@@ -31,6 +36,7 @@ export class ProcessSessionUseCase {
     if (lastProcessedAt) {
       const oneHourAgo = Date.now() - 60 * 60 * 1000;
       if (new Date(lastProcessedAt).getTime() > oneHourAgo) {
+        console.info("Package generation: skipping – same user+language processed within last hour", { userId, language, lastProcessedAt });
         return;
       }
     }
