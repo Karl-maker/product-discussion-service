@@ -80,7 +80,7 @@ resource "aws_dynamodb_table" "conversation_packages" {
   }
 }
 
-# DynamoDB Table for Transcript Analysis Results (by userId)
+# DynamoDB Table for Transcript Analysis Results (by userId); TTL 90 days
 resource "aws_dynamodb_table" "analysis_results" {
   name         = "${var.project_name}-${var.environment}-conversation-analysis-results"
   billing_mode = "PAY_PER_REQUEST"
@@ -95,6 +95,11 @@ resource "aws_dynamodb_table" "analysis_results" {
   attribute {
     name = "SK"
     type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
   }
 
   tags = {

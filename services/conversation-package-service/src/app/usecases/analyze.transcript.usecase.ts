@@ -39,12 +39,24 @@ export class AnalyzeTranscriptUseCase {
     });
 
     const now = new Date().toISOString();
+    const createdAtMs = new Date(now).getTime();
+    const ninetyDaysSeconds = 90 * 24 * 60 * 60;
+    const ttl = Math.floor(createdAtMs / 1000) + ninetyDaysSeconds;
+
+    const hitKeys = new Set(result.feedback.flatMap((f) => f.targets));
+    const targetsHit = input.targets.filter((t) => hitKeys.has(t.key));
+    const targetsMissed = input.targets.filter((t) => !hitKeys.has(t.key));
+
     await this.analysisResultRepository.save({
       userId: input.userId,
       conversationPackageId: input.conversationPackageId,
       topicKey: input.topicKey,
       result,
+      targetLanguage: input.targetLanguage,
+      targetsHit,
+      targetsMissed,
       createdAt: now,
+      ttl,
     });
 
     return {
