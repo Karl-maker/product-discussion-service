@@ -8,13 +8,14 @@ export class CreateVoiceSessionController {
 
   handle = async (req: RequestContext) => {
     const body = (req.body || {}) as Record<string, unknown>;
-    const { instructions, text_only } = body;
+    const { instructions, text_only, target_language, targetLanguage } = body;
     const userId = req.user?.id;
 
     return await this.useCase.execute({
       instructions: typeof instructions === "string" ? instructions : undefined,
       textOnlyOutput: text_only === true || text_only === "true",
-      userId: userId,
+      userId,
+      targetLanguage: typeof targetLanguage === "string" ? targetLanguage : typeof target_language === "string" ? target_language : undefined,
     });
   };
 }

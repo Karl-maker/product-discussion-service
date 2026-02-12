@@ -9,6 +9,7 @@ import {
 export interface VoiceSessionRecord {
   sessionId: string;
   userId?: string;
+  targetLanguage?: string;
   createdAt: string;
   expiresAt: string;
   ttl: number;
@@ -35,6 +36,7 @@ export class VoiceSessionRepository {
           SK: `METADATA#${record.sessionId}`,
           sessionId: record.sessionId,
           userId: record.userId,
+          targetLanguage: record.targetLanguage,
           createdAt: record.createdAt,
           expiresAt: record.expiresAt,
           ttl: record.ttl,
