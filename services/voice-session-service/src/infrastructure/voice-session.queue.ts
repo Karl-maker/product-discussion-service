@@ -18,7 +18,8 @@ export class SQSVoiceSessionQueue implements VoiceSessionQueue {
   }
 
   async send(record: VoiceSessionRecord): Promise<void> {
-    const dedupeId = record.userId ?? record.sessionId;
+    // Deduplication by userId only; FIFO requires an id so fallback when no userId
+    const dedupeId = record.userId ?? `anonymous-${record.sessionId}`;
     const groupId = record.userId ?? "default";
     await this.client.send(
       new SendMessageCommand({

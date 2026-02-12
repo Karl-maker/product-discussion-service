@@ -7,6 +7,7 @@ export interface CreateVoiceSessionInput {
   /** When true, session returns text-only output (no audio); default false = audio output */
   textOnlyOutput?: boolean;
   userId?: string;
+  targetLanguage?: string;
 }
 
 export interface CreateVoiceSessionOutput {
@@ -62,6 +63,7 @@ export class CreateVoiceSessionUseCase {
     const record: VoiceSessionRecord = {
       sessionId: session.session_id,
       userId: input.userId,
+      targetLanguage: input.targetLanguage,
       createdAt: now.toISOString(),
       expiresAt: session.expires_at,
       ttl,
