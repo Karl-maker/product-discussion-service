@@ -115,7 +115,7 @@ resource "aws_iam_role_policy" "secrets_manager" {
 module "voice_session_service_lambda" {
   source = "../../modules/lambda"
 
-  function_name = "voice-session-service"
+  function_name = "voice-session-${var.environment}-service"
   handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   filename      = abspath("${path.cwd}/services/voice-session-service/function.zip")

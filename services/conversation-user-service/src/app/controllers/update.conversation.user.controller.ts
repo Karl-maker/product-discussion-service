@@ -13,12 +13,13 @@ export class UpdateConversationUserController {
     const userId = req.user.id;
 
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const { language, targetLanguage, profession, timezone, country, purposeOfUsage } = body;
+    const { language, targetLanguage, initialFluency, profession, timezone, country, purposeOfUsage } = body;
 
     return this.useCase.execute({
       userId,
       language: typeof language === "string" ? language : undefined,
       targetLanguage: typeof targetLanguage === "string" ? targetLanguage : undefined,
+      initialFluency: typeof initialFluency === "string" ? initialFluency : undefined,
       profession: typeof profession === "string" ? profession : undefined,
       timezone: typeof timezone === "string" ? timezone : undefined,
       country: typeof country === "string" ? country : undefined,

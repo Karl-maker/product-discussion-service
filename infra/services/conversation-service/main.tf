@@ -145,7 +145,7 @@ resource "aws_iam_role_policy" "secrets_manager" {
 module "conversation_package_service_lambda" {
   source = "../../modules/lambda"
 
-  function_name = "conversation-package-service"
+  function_name = "conversation-package-${var.environment}-service"
   handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   timeout       = 28

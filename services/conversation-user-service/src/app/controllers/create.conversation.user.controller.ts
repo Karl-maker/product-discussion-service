@@ -11,12 +11,13 @@ export class CreateConversationUserController {
       throw err;
     }
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const { language, targetLanguage, profession, timezone, country, purposeOfUsage } = body;
+    const { language, targetLanguage, initialFluency, profession, timezone, country, purposeOfUsage } = body;
 
     return this.useCase.execute({
       userId: req.user.id,
       language: typeof language === "string" ? language : undefined,
       targetLanguage: typeof targetLanguage === "string" ? targetLanguage : undefined,
+      initialFluency: typeof initialFluency === "string" ? initialFluency : undefined,
       profession: typeof profession === "string" ? profession : undefined,
       timezone: typeof timezone === "string" ? timezone : undefined,
       country: typeof country === "string" ? country : undefined,

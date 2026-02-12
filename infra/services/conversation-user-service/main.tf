@@ -113,7 +113,7 @@ resource "aws_iam_role_policy" "jwt_secret" {
 module "conversation_user_service_lambda" {
   source = "../../modules/lambda"
 
-  function_name = "conversation-user-service"
+  function_name = "conversation-user-${var.environment}-service"
   handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   filename      = abspath("${path.cwd}/services/conversation-user-service/function.zip")
