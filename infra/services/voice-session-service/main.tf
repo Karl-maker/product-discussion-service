@@ -45,6 +45,22 @@ data "aws_secretsmanager_secret_version" "openai_api_key" {
   secret_id = data.aws_secretsmanager_secret.openai_api_key.id
 }
 
+# JWT secret for verifying access tokens (so userId can be read from Authorization header)
+data "aws_secretsmanager_secret" "jwt_access_token_secret" {
+  name = "${var.project_name}-${var.environment}-jwt-access-token-secret"
+}
+
+data "aws_secretsmanager_secret_version" "jwt_access_token_secret" {
+  secret_id = data.aws_secretsmanager_secret.jwt_access_token_secret.id
+}
+
+locals {
+  jwt_access_token_secret = try(
+    jsondecode(data.aws_secretsmanager_secret_version.jwt_access_token_secret.secret_string)["key"],
+    data.aws_secretsmanager_secret_version.jwt_access_token_secret.secret_string
+  )
+}
+
 # DynamoDB Table for Voice Sessions
 resource "aws_dynamodb_table" "voice_sessions" {
   name         = "${var.project_name}-${var.environment}-voice-sessions"
@@ -102,7 +118,7 @@ module "voice_session_service_iam_role" {
   }
 }
 
-# Additional IAM Policy for Secrets Manager
+# Additional IAM Policy for Secrets Manager (OpenAI + JWT)
 resource "aws_iam_role_policy" "secrets_manager" {
   name = "voice-session-service-secrets-manager-${var.environment}"
   role = module.voice_session_service_iam_role.role_name
@@ -118,6 +134,11 @@ resource "aws_iam_role_policy" "secrets_manager" {
         Resource = [
           data.aws_secretsmanager_secret.openai_api_key.arn
         ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = [data.aws_secretsmanager_secret.jwt_access_token_secret.arn]
       }
     ]
   })
@@ -151,9 +172,10 @@ module "voice_session_service_lambda" {
   iam_role_arn  = module.voice_session_service_iam_role.role_arn
 
   environment_variables = {
-    VOICE_SESSION_QUEUE_URL = aws_sqs_queue.voice_session_queue.url
-    PROJECT_NAME            = var.project_name
-    ENVIRONMENT             = var.environment
+    VOICE_SESSION_QUEUE_URL  = aws_sqs_queue.voice_session_queue.url
+    PROJECT_NAME             = var.project_name
+    ENVIRONMENT              = var.environment
+    JWT_ACCESS_TOKEN_SECRET  = local.jwt_access_token_secret
   }
 }
 
