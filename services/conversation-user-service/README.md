@@ -1,6 +1,6 @@
 # Conversation User Service
 
-Stores and retrieves conversation user profile: language, targetLanguage, profession, timezone, country, purposeOfUsage. All endpoints require a valid JWT; the authenticated user's ID from the token is used as `userId`.
+Stores and retrieves conversation user profile: language, targetLanguage, initialFluency, profession, timezone, country, purposeOfUsage. All endpoints require a valid JWT; the authenticated user's ID from the token is used as `userId`.
 
 ## API
 
@@ -12,7 +12,7 @@ Stores and retrieves conversation user profile: language, targetLanguage, profes
 
 ## Request / response
 
-- **POST /users** – Requires `Authorization: Bearer <token>`. Body: `language`, `targetLanguage`, `profession`, `timezone`, `country`, `purposeOfUsage` (all optional). `userId` is taken from the JWT. Returns created profile (201).
+- **POST /users** – Requires `Authorization: Bearer <token>`. Body: `language`, `targetLanguage`, `initialFluency`, `profession`, `timezone`, `country`, `purposeOfUsage` (all optional). `userId` is taken from the JWT. Returns created profile (201).
 - **GET /users/me** – Requires `Authorization: Bearer <token>`. Returns the authenticated user's profile or 404 if not found (200).
 - **PUT /users/me** – Requires `Authorization: Bearer <token>`. Body: any subset of the optional fields. Creates profile if it does not exist. Returns updated profile (200).
 

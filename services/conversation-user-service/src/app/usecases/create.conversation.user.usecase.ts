@@ -5,6 +5,7 @@ export interface CreateConversationUserInput {
   userId: string;
   language?: string;
   targetLanguage?: string;
+  initialFluency?: string;
   profession?: string;
   timezone?: string;
   country?: string;
@@ -21,6 +22,7 @@ export class CreateConversationUserUseCase {
       userId: input.userId,
       language: input.language,
       targetLanguage: input.targetLanguage,
+      initialFluency: input.initialFluency,
       profession: input.profession,
       timezone: input.timezone,
       country: input.country,

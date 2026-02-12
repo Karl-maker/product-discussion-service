@@ -5,6 +5,7 @@ export interface UpdateConversationUserInput {
   userId: string;
   language?: string;
   targetLanguage?: string;
+  initialFluency?: string;
   profession?: string;
   timezone?: string;
   country?: string;
@@ -23,6 +24,7 @@ export class UpdateConversationUserUseCase {
         userId: input.userId,
         language: input.language,
         targetLanguage: input.targetLanguage,
+        initialFluency: input.initialFluency,
         profession: input.profession,
         timezone: input.timezone,
         country: input.country,
@@ -38,6 +40,7 @@ export class UpdateConversationUserUseCase {
       ...existing,
       language: input.language !== undefined ? input.language : existing.language,
       targetLanguage: input.targetLanguage !== undefined ? input.targetLanguage : existing.targetLanguage,
+      initialFluency: input.initialFluency !== undefined ? input.initialFluency : existing.initialFluency,
       profession: input.profession !== undefined ? input.profession : existing.profession,
       timezone: input.timezone !== undefined ? input.timezone : existing.timezone,
       country: input.country !== undefined ? input.country : existing.country,

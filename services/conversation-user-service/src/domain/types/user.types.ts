@@ -2,6 +2,7 @@ export interface ConversationUser {
   userId: string;
   language?: string;
   targetLanguage?: string;
+  initialFluency?: string;
   profession?: string;
   timezone?: string;
   country?: string;
