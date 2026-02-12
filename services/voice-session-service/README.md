@@ -35,14 +35,13 @@ The service requires the following environment variables:
 
 ### Required
 
-- `VOICE_SESSIONS_TABLE` - Name of the DynamoDB table storing voice session records
-- `VOICE_SESSION_QUEUE_URL` - URL of the SQS queue for voice sessions to be stored (create sends here; Lambda is triggered by the queue to write to DynamoDB)
+- `VOICE_SESSION_QUEUE_URL` - URL of the SQS queue; this service only sends session records to the queue (no consumer here; attach another service/Lambda to the queue to process messages).
 - `PROJECT_NAME` - Project name for Secrets Manager lookup
 - `ENVIRONMENT` - Environment name (dev, staging, prod)
 
 ### Flow
 
-When a voice session is created (POST /voice-session), the session is sent to the **voice session queue**. A separate Lambda invocation (triggered by SQS) consumes the message and stores the session in DynamoDB. This decouples session creation from storage.
+When a voice session is created (POST /voice-session), the service creates the session with OpenAI and sends a **session record** (sessionId, userId, createdAt, expiresAt, ttl) to the SQS queue. This service does nothing else with the queue; you attach a separate consumer (e.g. another Lambda) to the queue to process messages.
 
 ## API Endpoints
 
