@@ -1,18 +1,24 @@
 import { OpenAIClient } from "./infrastructure/openai.client";
 import { VoiceSessionRepository } from "./infrastructure/repositories/voice-session.repository";
+import { SQSVoiceSessionQueue } from "./infrastructure/voice-session.queue";
 import { CreateVoiceSessionUseCase } from "./app/usecases/create.voice.session.usecase";
 import { CreateVoiceSessionController } from "./app/controllers/create.voice.session.controller";
 
 export function bootstrap() {
   const voiceSessionsTableName = process.env.VOICE_SESSIONS_TABLE;
+  const voiceSessionQueueUrl = process.env.VOICE_SESSION_QUEUE_URL;
   const projectName = process.env.PROJECT_NAME || "eislett-education";
   const environment = process.env.ENVIRONMENT || "dev";
 
   if (!voiceSessionsTableName) {
     throw new Error("VOICE_SESSIONS_TABLE environment variable is not set");
   }
+  if (!voiceSessionQueueUrl) {
+    throw new Error("VOICE_SESSION_QUEUE_URL environment variable is not set");
+  }
 
   const sessionRepository = new VoiceSessionRepository(voiceSessionsTableName);
+  const voiceSessionQueue = new SQSVoiceSessionQueue(voiceSessionQueueUrl);
   const openAIClient = new OpenAIClient();
 
   // Initialize async clients - must be done before use
@@ -36,7 +42,7 @@ export function bootstrap() {
 
   const createVoiceSessionUseCase = new CreateVoiceSessionUseCase(
     openAIClient,
-    sessionRepository
+    voiceSessionQueue
   );
 
   const createVoiceSessionController = new CreateVoiceSessionController(
@@ -45,5 +51,6 @@ export function bootstrap() {
 
   return {
     createVoiceSessionController,
+    voiceSessionRepository: sessionRepository,
   };
 }
