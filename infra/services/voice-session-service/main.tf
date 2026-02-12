@@ -91,10 +91,12 @@ resource "aws_dynamodb_table" "voice_sessions" {
 }
 
 # SQS FIFO Queue for voice sessions (deduplication by userId via MessageDeduplicationId)
+# delay_seconds = 900: messages are not visible to consumers for 15 minutes after send
 resource "aws_sqs_queue" "voice_session_queue" {
   name                        = "${var.project_name}-${var.environment}-voice-session-queue.fifo"
   fifo_queue                  = true
   content_based_deduplication  = true
+  delay_seconds               = 900
   visibility_timeout_seconds  = 60
   message_retention_seconds   = 86400
   receive_wait_time_seconds   = 0
@@ -193,4 +195,14 @@ resource "aws_api_gateway_deployment" "deployment" {
   rest_api_id = data.terraform_remote_state.foundation.outputs.api_gateway_id
 
   depends_on = [module.lambda_api_link]
+}
+
+output "voice_session_queue_url" {
+  value       = aws_sqs_queue.voice_session_queue.url
+  description = "URL of the voice session FIFO queue (for consumers)"
+}
+
+output "voice_session_queue_arn" {
+  value       = aws_sqs_queue.voice_session_queue.arn
+  description = "ARN of the voice session FIFO queue"
 }

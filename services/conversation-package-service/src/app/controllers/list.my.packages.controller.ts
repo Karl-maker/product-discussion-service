@@ -1,20 +1,32 @@
 import type { RequestContext } from "../../handler/api-gateway/types";
 import { ListPackagesUseCase } from "../usecases/list.packages.usecase";
 
-export class ListPackagesController {
+export class ListMyPackagesController {
   constructor(private readonly useCase: ListPackagesUseCase) {}
 
   handle = async (req: RequestContext) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      const err = new Error("Unauthorized");
+      (err as Error & { name: string }).name = "AuthenticationError";
+      throw err;
+    }
+
     const pageNumber = Number(req.query?.page_number ?? 1);
     const pageSize = Number(req.query?.page_size ?? 20);
-    const category = req.query?.category as string | undefined;
     const language = req.query?.language as string | undefined;
 
     const result = await this.useCase.execute({
-      filters: { category, language },
+      filters: { language },
       pagination: { pageNumber, pageSize },
-      options: { currentUserId: req.user?.id },
+      options: { currentUserId: userId, onlyUserPackages: true },
     });
+
+    if (result.items.length === 0 && result.total === 0) {
+      const err = new Error("none found");
+      (err as Error & { name: string }).name = "NotFoundError";
+      throw err;
+    }
 
     const total = result.total >= 0 ? result.total : 0;
     const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 0;

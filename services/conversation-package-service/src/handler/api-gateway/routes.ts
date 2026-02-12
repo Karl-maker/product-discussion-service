@@ -5,6 +5,7 @@ const {
   createPackageController,
   getPackageController,
   listPackagesController,
+  listMyPackagesController,
   updatePackageController,
   deletePackageController,
   analyzeTranscriptController,
@@ -14,6 +15,7 @@ const {
 export const routes: Record<string, (req: RequestContext) => Promise<unknown>> = {
   "POST /packages": createPackageController.handle,
   "GET /packages": listPackagesController.handle,
+  "GET /packages/mine": listMyPackagesController.handle,
   "POST /packages/analyze-transcript": analyzeTranscriptController.handle,
   "GET /packages/{id}": getPackageController.handle,
   "PUT /packages/{id}": updatePackageController.handle,

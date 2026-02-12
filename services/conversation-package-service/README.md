@@ -1,6 +1,6 @@
 # Conversation Package Service
 
-CRUD service for conversation packages and transcript analysis. Packages have name, description, category, tags, and a list of conversations; each conversation has name, instruction, and targets (key, description, check, optional amount). Transcript analysis uses OpenAI GPT-4o to return ~3 feedback items and saves results by userId for lookup.
+CRUD service for conversation packages and transcript analysis. Packages have name, description, category, tags, and a list of conversations; each conversation has name, instruction, and targets (key, description, check, optional amount). Optional fields (all backwards compatible): **notes** (title, details, content), **userId** (user-specific packages; only visible to the owner when JWT is present), and **language** (for filtering). Transcript analysis uses OpenAI GPT-4o to return ~3 feedback items and saves results by userId for lookup.
 
 ## API overview
 
@@ -8,6 +8,7 @@ CRUD service for conversation packages and transcript analysis. Packages have na
 |--------|------|-------------|
 | POST | `/packages` | Create a package |
 | GET | `/packages` | List packages |
+| GET | `/packages/mine` | List only the current user's packages (auth required; 404 if none) |
 | GET | `/packages/{id}` | Get one package |
 | PUT | `/packages/{id}` | Update a package |
 | DELETE | `/packages/{id}` | Delete a package |
@@ -33,6 +34,10 @@ Create one or many conversation packages.
 | `category` | string | Yes | Category (e.g. for filtering) |
 | `tags` | string[] | No | Tags (default `[]`) |
 | `conversations` | array | No | List of conversations (default `[]`) |
+| `notes` | object | No | Optional notes: `title`, `details`, `content` (all optional strings) |
+| `language` | string | No | Optional language (e.g. for list filtering) |
+
+When **Auth** (JWT) is present, the created package is stored with `userId` from the token so it becomes user-specific (only you can see it in list/get).
 
 Each item in `conversations`:
 
@@ -100,6 +105,8 @@ Single-package response:
 }
 ```
 
+Response may also include optional `notes`, `userId`, and `language` when set.
+
 Bulk response:
 
 ```json
@@ -117,17 +124,18 @@ Bulk response:
 
 List conversation packages with optional filters and pagination.
 
-**Auth:** Optional.
+**Auth:** Optional. When **no JWT** is sent, only packages without a `userId` (public packages) are returned. When **JWT is present**, the list includes both public packages and packages whose `userId` matches the authenticated user.
 
 **Query parameters:**
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `category` | string | — | Filter by category |
+| `language` | string | — | Filter by package language |
 | `page_number` | number | 1 | Page number (1-based) |
 | `page_size` | number | 20 | Items per page |
 
-**Example:** `GET /packages?category=language&page_number=1&page_size=10`
+**Example:** `GET /packages?category=language&language=es&page_number=1&page_size=10`
 
 **Response:** `200 OK`
 
@@ -156,11 +164,33 @@ List conversation packages with optional filters and pagination.
 
 ---
 
+### GET /packages/mine
+
+List **only** the current user's packages (packages where `userId` matches the JWT user). Optional filter by `language`. If the user has no packages (matching the optional language filter), the response is **404** with message "none found".
+
+**Auth:** Required (Bearer JWT).
+
+**Query parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `language` | string | — | Filter by package language |
+| `page_number` | number | 1 | Page number (1-based) |
+| `page_size` | number | 20 | Items per page |
+
+**Example:** `GET /packages/mine?language=es`
+
+**Response:** `200 OK` – same shape as `GET /packages` (`amount`, `data`, `pagination`).
+
+**Errors:** `404` with `error: "NOT_FOUND"`, `message: "none found"` when the user has no packages (for the given language, if specified). `401` when no valid JWT is provided.
+
+---
+
 ### GET /packages/{id}
 
 Get a single package by ID.
 
-**Auth:** Optional.
+**Auth:** Optional for **public** packages (no `userId`). For **user-specific** packages (package has `userId`), a valid JWT is required and the package is returned only if the token’s user is the owner; otherwise the response is "Package not found".
 
 **Path parameters:**
 
@@ -168,7 +198,7 @@ Get a single package by ID.
 |-----------|-------------|
 | `id` | Package ID (e.g. `pkg-1234567890-abc`) |
 
-**Response:** `200 OK` – full package object.
+**Response:** `200 OK` – full package object (may include optional `notes`, `userId`, `language`).
 
 **Errors:** Returns error if package not found (handler may return 500 with message "Package not found").
 
@@ -186,7 +216,7 @@ Update an existing package. Only provided fields are updated.
 |-----------|-------------|
 | `id` | Package ID |
 
-**Request body:** Same shape as POST; all fields optional except that you are updating. Omitted fields keep their current values.
+**Request body:** Same shape as POST; all fields optional. Omitted fields keep their current values. **User-specific packages** (with `userId`) can only be updated when the request includes a JWT for the owner.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -195,6 +225,8 @@ Update an existing package. Only provided fields are updated.
 | `category` | string | New category |
 | `tags` | string[] | New tags |
 | `conversations` | array | New conversations (same structure as POST) |
+| `notes` | object | Optional notes: `title`, `details`, `content` |
+| `language` | string | Optional language |
 
 **Example:** `PUT /packages/pkg-xxx` with body `{ "name": "Updated name" }`
 
@@ -206,7 +238,7 @@ Update an existing package. Only provided fields are updated.
 
 Delete a package by ID.
 
-**Auth:** Optional.
+**Auth:** Optional for public packages. **User-specific** packages can only be deleted when the request includes a JWT for the owner; otherwise "Package not found" is returned.
 
 **Path parameters:**
 
@@ -372,6 +404,12 @@ The service validates the OpenAI response for `POST /packages/analyze-transcript
   - The service only returns `wordsUsed` when the user actually spoke words in the target language; otherwise the key is omitted.
 
 If validation fails, an error is returned and the result is not saved.
+
+---
+
+## Backwards compatibility
+
+All new package fields are **optional**: `notes`, `userId`, and `language`. Existing packages and clients that do not send these fields continue to work unchanged. Listing without JWT returns only packages that have no `userId` (public packages). Listing with JWT returns public packages plus the caller’s user-specific packages.
 
 ---
 

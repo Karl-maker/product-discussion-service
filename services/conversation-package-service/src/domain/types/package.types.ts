@@ -11,6 +11,13 @@ export interface PackageConversation {
   targets: ConversationTarget[];
 }
 
+/** Optional notes on a package (all fields optional for backwards compatibility). */
+export interface PackageNotes {
+  title?: string;
+  details?: string;
+  content?: string;
+}
+
 export interface ConversationPackage {
   id: string;
   name: string;
@@ -20,10 +27,18 @@ export interface ConversationPackage {
   conversations: PackageConversation[];
   createdAt: string;
   updatedAt: string;
+  /** Optional notes (title, details, content). */
+  notes?: PackageNotes;
+  /** When set, package is user-specific; only owner can see it when fetching by id or in list. */
+  userId?: string;
+  /** Optional language (e.g. for filtering). */
+  language?: string;
 }
 
 export interface ConversationPackageFilters {
   category?: string;
+  /** Filter list by language. */
+  language?: string;
 }
 
 /** One feedback item from transcript analysis (AI returns ~3 of these). */

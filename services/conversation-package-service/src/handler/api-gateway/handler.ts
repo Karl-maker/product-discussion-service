@@ -72,7 +72,8 @@ export async function apiHandler(event: APIGatewayProxyEvent) {
     // Same JWT handling as eislett-education-payment-service: requireUser(event) for auth-required routes
     const authRequired =
       (normalizedPath === "packages/analyze-transcript" && req.method === "POST") ||
-      (normalizedPath === "packages/analysis-results" && req.method === "GET");
+      (normalizedPath === "packages/analysis-results" && req.method === "GET") ||
+      (normalizedPath === "packages/mine" && req.method === "GET");
 
     let user: { id: string; role?: string } | null = null;
     if (authRequired) {

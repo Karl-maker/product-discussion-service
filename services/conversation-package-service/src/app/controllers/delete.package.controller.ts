@@ -10,7 +10,7 @@ export class DeletePackageController {
       throw new Error("id is required in path");
     }
 
-    await this.useCase.execute({ id });
+    await this.useCase.execute({ id, currentUserId: req.user?.id });
     return { deleted: true };
   };
 }
