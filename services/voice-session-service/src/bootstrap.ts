@@ -10,14 +10,13 @@ export function bootstrap() {
   const projectName = process.env.PROJECT_NAME || "eislett-education";
   const environment = process.env.ENVIRONMENT || "dev";
 
-  if (!voiceSessionsTableName) {
-    throw new Error("VOICE_SESSIONS_TABLE environment variable is not set");
-  }
   if (!voiceSessionQueueUrl) {
     throw new Error("VOICE_SESSION_QUEUE_URL environment variable is not set");
   }
 
-  const sessionRepository = new VoiceSessionRepository(voiceSessionsTableName);
+  const sessionRepository = voiceSessionsTableName
+    ? new VoiceSessionRepository(voiceSessionsTableName)
+    : null;
   const voiceSessionQueue = new SQSVoiceSessionQueue(voiceSessionQueueUrl);
   const openAIClient = new OpenAIClient();
 
