@@ -95,7 +95,7 @@ Output a JSON object with exactly these keys: name, description (short, required
 
 RULES:
 1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
-2. PACKAGE NAME: Do NOT include the word "package" in the name. Use a short, personal title (e.g. "My Japanese", "Spanish with you", "Your French path").
+2. PACKAGE NAME: One to two words only. Must be unique to the goal of this lesson and explain what the user is learning (e.g. "Greetings basics", "Introductions practice", "Weather talk", "Ordering food"). Do NOT include the word "package" or generic titles like "My Japanese". Each package name should reflect the specific focus of the 10 conversations.
 3. PACKAGE DESCRIPTION: Always include a short description (one or two sentences) that summarizes what this package covers and the focus (e.g. "Review and new greetings. Practice saying hello and thanks in ${targetLanguage}."). Keep it brief and personal.
 4. CONVERSATIONS: Output exactly 10 conversations. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }).
    - CONVERSATION DESCRIPTION: Every conversation MUST have a short description (one sentence) explaining what this conversation is about and what the user will practice. Write in the user's language.
