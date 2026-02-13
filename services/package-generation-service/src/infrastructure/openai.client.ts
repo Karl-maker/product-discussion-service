@@ -124,13 +124,15 @@ function buildUserPrompt(input: GeneratePackageInput): string {
   parts.push("");
 
   if (existingPackage) {
-    parts.push("EXISTING PACKAGE (evolve from this; do not duplicate words already covered):");
+    parts.push("LAST PACKAGE (the user's current package — compare and progress from it):");
     parts.push(JSON.stringify({
       name: existingPackage.name,
       description: existingPackage.description,
       conversations: existingPackage.conversations,
       notes: existingPackage.notes,
     }, null, 2));
+    parts.push("");
+    parts.push("CRITICAL: (1) Your new package name MUST be different from the above (existing name: \"" + existingPackage.name + "\"). Pick a new 1–2 word name that reflects the next learning goal. (2) Your package MUST progress from this one: new or expanded topics, next steps in the learning arc; do not repeat the same name or the same focus.");
     parts.push("");
   } else {
     parts.push("No existing package for this user/language. Create a new beginner package.");
@@ -156,7 +158,7 @@ function buildUserPrompt(input: GeneratePackageInput): string {
     });
     parts.push("From the above: (1) Do not repeat the same review as last time—progress. Use basic introductions (we use every time we meet) as review; expand on introductions from the last lesson; (2) If the user seems advanced in a topic (words said, targets hit), move on from that topic; (3) Build new lessons from what they said and what they missed. Do not duplicate words; only evolve.");
   } else {
-    parts.push("No new analysis results since last run. If there is an existing package, output an evolved version (e.g. add one small new lesson or adjust notes). If no existing package, create a first lesson.");
+    parts.push("No new analysis results since last run. If there is an existing package above, output an evolved version: use a different package name (not the same as the last one), add or adjust lessons so the package progresses. If no existing package, create a first lesson.");
   }
 
   parts.push("");
