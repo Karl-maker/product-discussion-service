@@ -65,8 +65,9 @@ export class UserPackageRepository {
       userId: pkg.userId,
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
-    item.targetLanguage = pkg.targetLanguage;
-    item.targetLanguageNorm = (pkg.targetLanguage || "").trim().toLowerCase();
+    const targetLang = (pkg.targetLanguage || "").trim().toLowerCase();
+    item.targetLanguage = targetLang;
+    item.targetLanguageNorm = targetLang;
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
