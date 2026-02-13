@@ -29,13 +29,13 @@ export class UserPackageRepository {
     this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
   }
 
-  /** Find the user's package for this language (at most one). Stored/filtered as "lang" in DynamoDB (avoids reserved word "language"). */
+  /** Find the user's package for this language (at most one). Stored/filtered as targetLanguage in DynamoDB. */
   async findByUserIdAndLanguage(userId: string, language: string): Promise<StoredPackage | null> {
     const result = await this.client.send(
       new ScanCommand({
         TableName: this.tableName,
-        FilterExpression: "userId = :uid AND lang = :lang",
-        ExpressionAttributeValues: { ":uid": userId, ":lang": language },
+        FilterExpression: "userId = :uid AND targetLanguage = :targetLanguage",
+        ExpressionAttributeValues: { ":uid": userId, ":targetLanguage": language },
         Limit: 2,
       })
     );
@@ -60,7 +60,7 @@ export class UserPackageRepository {
       userId: pkg.userId,
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
-    item.lang = pkg.language;
+    item.targetLanguage = pkg.language;
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
@@ -71,7 +71,7 @@ export class UserPackageRepository {
 }
 
 function mapToStored(item: Record<string, unknown>): StoredPackage {
-  const langVal = item.lang ?? item.language;
+  const langVal = item.targetLanguage ?? item.lang ?? item.language;
   return {
     id: item.id as string,
     name: item.name as string,
