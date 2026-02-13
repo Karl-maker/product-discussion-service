@@ -33,13 +33,13 @@ export class UserPackageRepository {
     this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
   }
 
-  /** Find the user's package for this language (at most one). */
+  /** Find the user's package for this language (at most one). Reserved words: language (and userId in some contexts) use attribute names. */
   async findByUserIdAndLanguage(userId: string, language: string): Promise<StoredPackage | null> {
     const result = await this.client.send(
       new ScanCommand({
         TableName: this.tableName,
-        FilterExpression: "userId = :uid AND #lang = :lang",
-        ExpressionAttributeNames: { "#lang": "language" },
+        FilterExpression: "#uid = :uid AND #lang = :lang",
+        ExpressionAttributeNames: { "#uid": "userId", "#lang": "language" },
         ExpressionAttributeValues: { ":uid": userId, ":lang": language },
         Limit: 2,
       })
