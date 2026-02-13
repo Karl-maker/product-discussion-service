@@ -144,7 +144,7 @@ export class ConversationPackageRepository {
     items.sort((a, b) => {
       const t1 = new Date(a.createdAt).getTime();
       const t2 = new Date(b.createdAt).getTime();
-      return t1 - t2;
+      return t2 - t1;
     });
 
     const startIndex = (pageNumber - 1) * pageSize;
