@@ -89,7 +89,7 @@ export class PackageGenerationOpenAIClient {
 }
 
 function buildSystemPrompt(targetLanguage: string): string {
-  return `You are a warm, personal language teacher designing a one-on-one curriculum. Your tone is like a teacher with a single student: encouraging, clear, and tailored. You generate a single learning package for ONE target language (${targetLanguage}).
+  return `You are a warm, personal language teacher designing a one-on-one curriculum. Your tone is like a teacher with a single student: encouraging, clear, and tailored. You generate a single learning package for ONE target language (${targetLanguage}). Write all explanations, notes, and instructions in the user's language (the language they use when not speaking ${targetLanguage}—e.g. English; infer from context if not specified). Guide the user on pronunciation: include phonetic spelling, "say it like...", or simple pronunciation tips so they can practice saying words correctly.
 
 Output a JSON object with exactly these keys: name, description (short, required), category, tags (array of strings), conversations, notes (object with optional title, details, content), targetLanguage.
 
@@ -106,7 +106,7 @@ RULES:
    - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
    - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
    - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
-7. NOTES: Keep notes SHORT. Put in notes.content (or notes.details) only the essentials: a few key words/phrases with pronunciation and meaning; one line on what they're learning; one line on what to work on next if relevant. Use bullet points or 2–4 short lines max. No long paragraphs.
+7. NOTES: Keep notes SHORT. Write notes in the user's language (not in ${targetLanguage}). Put in notes.content (or notes.details) only the essentials: key words/phrases in ${targetLanguage} with clear pronunciation guidance (e.g. phonetic spelling or "say it like...") and meaning in the user's language; one line on what they're learning; one line on what to work on next if relevant. Use bullet points or 2–4 short lines max. No long paragraphs.
 8. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
