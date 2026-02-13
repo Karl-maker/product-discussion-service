@@ -14,7 +14,9 @@ export class GenerationStateRepository {
       throw new Error("GENERATION_STATE_TABLE environment variable is not set");
     }
     this.tableName = tableName;
-    this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+    this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+      marshallOptions: { removeUndefinedValues: true },
+    });
   }
 
   async getLastProcessedAt(userId: string, targetLanguage: string): Promise<string | null> {

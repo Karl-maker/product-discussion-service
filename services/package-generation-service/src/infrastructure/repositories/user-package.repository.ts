@@ -26,7 +26,9 @@ export class UserPackageRepository {
       throw new Error("CONVERSATION_PACKAGES_TABLE environment variable is not set");
     }
     this.tableName = tableName;
-    this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+    this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+      marshallOptions: { removeUndefinedValues: true },
+    });
   }
 
   /** Find the user's package for this targetLanguage (at most one). Use placeholders so no reserved words (e.g. language) appear in the expression. */
