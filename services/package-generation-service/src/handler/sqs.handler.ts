@@ -8,18 +8,19 @@ function parseMessage(body: string): SessionMessage | null {
     const sessionId = parsed.sessionId;
     if (typeof sessionId !== "string") return null;
     const userId = parsed.userId;
-    const lang =
+    // Prefer targetLanguage (voice-session sends this); fallback for legacy or alternate senders
+    const targetLanguage =
       typeof parsed.targetLanguage === "string"
         ? parsed.targetLanguage
-        : typeof parsed.language === "string"
-          ? parsed.language
-          : typeof parsed.target_language === "string"
-            ? parsed.target_language
+        : typeof parsed.target_language === "string"
+          ? parsed.target_language
+          : typeof parsed.language === "string"
+            ? parsed.language
             : undefined;
     return {
       sessionId,
       userId: typeof userId === "string" ? userId : undefined,
-      targetLanguage: lang && lang.length > 0 ? lang : undefined,
+      targetLanguage: targetLanguage && targetLanguage.length > 0 ? targetLanguage : undefined,
       createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : new Date().toISOString(),
       expiresAt: typeof parsed.expiresAt === "string" ? parsed.expiresAt : undefined,
       ttl: typeof parsed.ttl === "number" ? parsed.ttl : undefined,

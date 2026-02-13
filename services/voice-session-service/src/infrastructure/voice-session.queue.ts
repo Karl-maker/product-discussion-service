@@ -21,7 +21,7 @@ export class SQSVoiceSessionQueue implements VoiceSessionQueue {
     // Deduplication by userId only; FIFO requires an id so fallback when no userId
     const dedupeId = record.userId ?? `anonymous-${record.sessionId}`;
     const groupId = record.userId ?? "default";
-    // Always include userId and targetLanguage in payload (JSON.stringify omits undefined)
+    // Always include userId and targetLanguage in payload (targetLanguage is the canonical key for package-generation and other consumers)
     const body: Record<string, unknown> = {
       sessionId: record.sessionId,
       userId: record.userId ?? null,
