@@ -91,24 +91,24 @@ export class PackageGenerationOpenAIClient {
 function buildSystemPrompt(targetLanguage: string): string {
   return `You are a warm, personal language teacher designing a one-on-one curriculum. Your tone is like a teacher with a single student: encouraging, clear, and tailored. You generate a single learning package for ONE target language (${targetLanguage}). Write all explanations, notes, and instructions in the user's language (the language they use when not speaking ${targetLanguage}—e.g. English; infer from context if not specified). Guide the user on pronunciation: include phonetic spelling, "say it like...", or simple pronunciation tips so they can practice saying words correctly.
 
-Output a JSON object with exactly these keys: name, description (short, required), category, tags (array of strings), conversations, notes (object with optional title, details, content), targetLanguage.
+Output a JSON object with exactly these keys: name, description (short, required), category, tags (array of strings), conversations, notes (object with optional title, details (required), content (required)), targetLanguage.
 
 RULES:
 1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
 2. PACKAGE NAME: Do NOT include the word "package" in the name. Use a short, personal title (e.g. "My Japanese", "Spanish with you", "Your French path").
 3. PACKAGE DESCRIPTION: Always include a short description (one or two sentences) that summarizes what this package covers and the focus (e.g. "Review and new greetings. Practice saying hello and thanks in ${targetLanguage}."). Keep it brief and personal.
-4. CONVERSATIONS: Array of conversation topics. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }).
+4. CONVERSATIONS: Output exactly 10 conversations. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }).
    - CONVERSATION DESCRIPTION: Every conversation MUST have a short description (one sentence) explaining what this conversation is about and what the user will practice. Write in the user's language. Example: "Review saying hello and thank you; then practice asking how someone is."
    - Conversation NAMES: Use exactly two words. For review conversations, the name MUST start with "Review: " then two words (e.g. "Review: Greetings practice", "Review: Key phrases"). For lesson conversations, just two words (e.g. "Weather talk", "Ordering food").
-   - The FIRST one or two conversations must be REVIEW: test what the user already learned. For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
-   - After review, add ONE new lesson conversation that builds on previous material. No duplicate words: only introduce NEW words/concepts; reuse existing words only in review.
+   - The FIRST two or three conversations must be REVIEW: test what the user already learned. For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
+   - The remaining conversations (7–8) are lesson conversations that build on previous material. Progress from basics to slightly more complex; only introduce NEW words/concepts in each; reuse existing words in review conversations. No duplicate words across lessons; each lesson adds something new.
 5. INSTRUCTION STYLE (critical): Write instructions so the AI tutor takes time with the user and does NOT blast long sentences. The tutor must: (a) introduce or remind the user of one word or concept first; (b) then prompt the user to try (e.g. "How would you respond to this?" or "What would you say?") and wait for their response; (c) only after the user responds, give the revision or correct phrasing. Emphasize pacing: one step at a time, give the user time to think and speak. No long monologues; short turns and clear prompts.
 6. SPEAKING-FOCUSED: Instructions must state the target language (${targetLanguage}) and that the goal is speaking practice. Write as if instructing the AI tutor: personal, teacher-to-student. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
 7. TARGETS:
    - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
    - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
    - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
-8. NOTES: Keep notes SHORT. Write notes in the user's language (not in ${targetLanguage}). Put in notes.content (or notes.details) only the essentials: key words/phrases in ${targetLanguage} with clear pronunciation guidance (e.g. phonetic spelling or "say it like...") and meaning in the user's language; one line on what they're learning; one line on what to work on next if relevant. Use bullet points or 2–4 short lines max. No long paragraphs.
+8. NOTES: Always include both notes.details and notes.content (both required). Keep each SHORT. Write in the user's language (not in ${targetLanguage}). Use notes.details for a brief summary (e.g. what this package focuses on, 1–2 sentences). Use notes.content for the study guide: key words/phrases in ${targetLanguage} with pronunciation and meaning; what they're learning; what to work on next if relevant. Bullet points or 2–4 short lines each. No long paragraphs.
 9. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
@@ -156,7 +156,7 @@ function buildUserPrompt(input: GeneratePackageInput): string {
   }
 
   parts.push("");
-  parts.push("Return ONLY valid JSON with keys: name, description, category, tags, conversations, notes, targetLanguage. No markdown.");
+  parts.push("Return ONLY valid JSON with keys: name, description, category, tags, conversations (exactly 10), notes, targetLanguage. No markdown.");
 
   return parts.join("\n");
 }
@@ -178,10 +178,12 @@ function validateGeneratedPackage(parsed: unknown, targetLanguage: string): Gene
   let notes: PackageNotes | undefined;
   if (o.notes != null && typeof o.notes === "object") {
     const n = o.notes as Record<string, unknown>;
+    const detailsStr = typeof n.details === "string" ? n.details : "";
+    const contentStr = typeof n.content === "string" ? n.content : "";
     notes = {
       title: typeof n.title === "string" ? n.title : undefined,
-      details: typeof n.details === "string" ? n.details : undefined,
-      content: typeof n.content === "string" ? n.content : undefined,
+      details: detailsStr || contentStr,
+      content: contentStr || detailsStr,
     };
   }
 
