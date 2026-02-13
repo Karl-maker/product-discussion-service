@@ -59,8 +59,9 @@ export class ConversationPackageRepository {
     if (pkg.notes !== undefined) item.notes = pkg.notes;
     if (pkg.userId !== undefined) item.userId = pkg.userId;
     if (pkg.language !== undefined) {
-      item.targetLanguage = pkg.language;
-      item.targetLanguageNorm = (pkg.language || "").trim().toLowerCase();
+      const targetLang = (pkg.language || "").trim().toLowerCase();
+      item.targetLanguage = targetLang;
+      item.targetLanguageNorm = targetLang;
     }
     await this.client.send(
       new PutCommand({
