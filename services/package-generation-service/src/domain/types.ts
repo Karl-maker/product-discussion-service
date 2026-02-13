@@ -34,6 +34,8 @@ export interface ConversationTarget {
 /** One conversation in a package. */
 export interface PackageConversation {
   name: string;
+  /** Short description of what this conversation covers (for the user). */
+  description?: string;
   instruction: string;
   targets: ConversationTarget[];
 }

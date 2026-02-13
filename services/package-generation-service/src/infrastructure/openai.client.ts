@@ -97,17 +97,19 @@ RULES:
 1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
 2. PACKAGE NAME: Do NOT include the word "package" in the name. Use a short, personal title (e.g. "My Japanese", "Spanish with you", "Your French path").
 3. PACKAGE DESCRIPTION: Always include a short description (one or two sentences) that summarizes what this package covers and the focus (e.g. "Review and new greetings. Practice saying hello and thanks in ${targetLanguage}."). Keep it brief and personal.
-4. CONVERSATIONS: Array of conversation topics. Each has: name, instruction, targets (array of { key, description, check, amount? }).
+4. CONVERSATIONS: Array of conversation topics. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }).
+   - CONVERSATION DESCRIPTION: Every conversation MUST have a short description (one sentence) explaining what this conversation is about and what the user will practice. Write in the user's language. Example: "Review saying hello and thank you; then practice asking how someone is."
    - Conversation NAMES: Use exactly two words. For review conversations, the name MUST start with "Review: " then two words (e.g. "Review: Greetings practice", "Review: Key phrases"). For lesson conversations, just two words (e.g. "Weather talk", "Ordering food").
    - The FIRST one or two conversations must be REVIEW: test what the user already learned. For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
    - After review, add ONE new lesson conversation that builds on previous material. No duplicate words: only introduce NEW words/concepts; reuse existing words only in review.
-5. SPEAKING-FOCUSED: Instructions must state the target language (${targetLanguage}) and that the goal is speaking practice. Write as if instructing the AI tutor: personal, teacher-to-student. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
-6. TARGETS:
+5. INSTRUCTION STYLE (critical): Write instructions so the AI tutor takes time with the user and does NOT blast long sentences. The tutor must: (a) introduce or remind the user of one word or concept first; (b) then prompt the user to try (e.g. "How would you respond to this?" or "What would you say?") and wait for their response; (c) only after the user responds, give the revision or correct phrasing. Emphasize pacing: one step at a time, give the user time to think and speak. No long monologues; short turns and clear prompts.
+6. SPEAKING-FOCUSED: Instructions must state the target language (${targetLanguage}) and that the goal is speaking practice. Write as if instructing the AI tutor: personal, teacher-to-student. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
+7. TARGETS:
    - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
    - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
    - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
-7. NOTES: Keep notes SHORT. Write notes in the user's language (not in ${targetLanguage}). Put in notes.content (or notes.details) only the essentials: key words/phrases in ${targetLanguage} with clear pronunciation guidance (e.g. phonetic spelling or "say it like...") and meaning in the user's language; one line on what they're learning; one line on what to work on next if relevant. Use bullet points or 2–4 short lines max. No long paragraphs.
-8. Use category "language" and tags that include the target language name and "speaking".`;
+8. NOTES: Keep notes SHORT. Write notes in the user's language (not in ${targetLanguage}). Put in notes.content (or notes.details) only the essentials: key words/phrases in ${targetLanguage} with clear pronunciation guidance (e.g. phonetic spelling or "say it like...") and meaning in the user's language; one line on what they're learning; one line on what to work on next if relevant. Use bullet points or 2–4 short lines max. No long paragraphs.
+9. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
 function buildUserPrompt(input: GeneratePackageInput): string {
@@ -198,6 +200,7 @@ function validateConversation(c: unknown): PackageConversation {
   const o = (c as Record<string, unknown>) ?? {};
   return {
     name: String(o.name ?? "Conversation"),
+    description: o.description !== undefined ? String(o.description) : undefined,
     instruction: String(o.instruction ?? ""),
     targets: Array.isArray(o.targets)
       ? (o.targets as unknown[]).map((t) => {
