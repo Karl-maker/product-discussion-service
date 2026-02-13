@@ -31,14 +31,16 @@ export class UserPackageRepository {
     });
   }
 
-  /** Find the user's package for this targetLanguage (at most one). Use placeholders so no reserved words (e.g. language) appear in the expression. */
+  /** Find the user's package for this targetLanguage (at most one). Case-insensitive via targetLanguageNorm; falls back to exact match for items without norm. */
   async findByUserIdAndLanguage(userId: string, targetLanguage: string): Promise<StoredPackage | null> {
+    const tlNorm = (targetLanguage || "").trim().toLowerCase();
+    const tlExact = (targetLanguage || "").trim();
     const result = await this.client.send(
       new ScanCommand({
         TableName: this.tableName,
-        FilterExpression: "#uid = :uid AND #tl = :tl",
-        ExpressionAttributeNames: { "#uid": "userId", "#tl": "targetLanguage" },
-        ExpressionAttributeValues: { ":uid": userId, ":tl": targetLanguage },
+        FilterExpression: "#uid = :uid AND (#tlNorm = :tlNorm OR (attribute_not_exists(#tlNorm) AND #tl = :tl))",
+        ExpressionAttributeNames: { "#uid": "userId", "#tl": "targetLanguage", "#tlNorm": "targetLanguageNorm" },
+        ExpressionAttributeValues: { ":uid": userId, ":tlNorm": tlNorm, ":tl": tlExact },
         Limit: 2,
       })
     );
@@ -64,6 +66,7 @@ export class UserPackageRepository {
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
     item.targetLanguage = pkg.targetLanguage;
+    item.targetLanguageNorm = (pkg.targetLanguage || "").trim().toLowerCase();
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
