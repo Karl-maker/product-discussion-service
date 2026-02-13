@@ -40,7 +40,7 @@ export class ProcessSessionUseCase {
         return;
       }
     }
-    const allResults = await this.analysisRepo.listByUserId(userId, 100);
+    const allResults = await this.analysisRepo.listByUserId(userId, 500);
     const resultsSinceLast = lastProcessedAt
       ? allResults.filter((r) => r.createdAt > lastProcessedAt)
       : allResults;

@@ -55,7 +55,7 @@ export class PackageGenerationOpenAIClient {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4-turbo",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
@@ -98,17 +98,20 @@ RULES:
 2. PACKAGE NAME: Do NOT include the word "package" in the name. Use a short, personal title (e.g. "My Japanese", "Spanish with you", "Your French path").
 3. PACKAGE DESCRIPTION: Always include a short description (one or two sentences) that summarizes what this package covers and the focus (e.g. "Review and new greetings. Practice saying hello and thanks in ${targetLanguage}."). Keep it brief and personal.
 4. CONVERSATIONS: Output exactly 10 conversations. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }).
-   - CONVERSATION DESCRIPTION: Every conversation MUST have a short description (one sentence) explaining what this conversation is about and what the user will practice. Write in the user's language. Example: "Review saying hello and thank you; then practice asking how someone is."
-   - Conversation NAMES: Use exactly two words. For review conversations, the name MUST start with "Review: " then two words (e.g. "Review: Greetings practice", "Review: Key phrases"). For lesson conversations, just two words (e.g. "Weather talk", "Ordering food").
-   - The FIRST two or three conversations must be REVIEW: test what the user already learned. For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
-   - The remaining conversations (7–8) are lesson conversations that build on previous material. Progress from basics to slightly more complex; only introduce NEW words/concepts in each; reuse existing words in review conversations. No duplicate words across lessons; each lesson adds something new.
+   - CONVERSATION DESCRIPTION: Every conversation MUST have a short description (one sentence) explaining what this conversation is about and what the user will practice. Write in the user's language.
+   - Conversation NAMES: Use exactly two words. For review conversations, the name MUST start with "Review: " then two words (e.g. "Review: Greetings practice"). For lesson conversations, just two words (e.g. "Weather talk", "Ordering food").
+   - ALWAYS PROGRESS: Do NOT keep reviewing the same material if you already reviewed it last time. Each run must move forward. Use the RECENT ANALYSIS RESULTS and past words the user said to decide what to do next.
+   - REVIEW = basic introductions we use every time: Start the first 2–3 conversations with basic introductions as the review (hello, thanks, how are you—the phrases we use every time we meet). The instruction MUST tell the AI tutor to (1) remind the user that they've said these before and we use them every time we meet, and (2) START the conversation with a specific word or phrase so the user responds in ${targetLanguage}. Do not re-drill the same review from the previous package; treat introductions as the standing "review" and build from the last lesson.
+   - From the last lesson, teach a NEW way to introduce or expand on introductions (e.g. different formality, "nice to meet you", asking name). For the first few lessons, base expansion on what the user said last time: if they used "hello" and "thanks", add "how are you" or "my name is"; keep expanding introductions. Then move to new topics.
+   - TOPIC ADVANCEMENT: Look at the past words the user said (in RECENT ANALYSIS RESULTS). If the user seems advanced in a topic (e.g. consistently hitting targets, using words correctly, good feedback), MOVE ON from that topic—do not keep drilling it. Add new topics or deeper variants. If they struggled, do one more focused review then progress.
+   - The remaining conversations (7–8) are lesson conversations that build on previous material. Progress from basics to slightly more complex; only introduce NEW words/concepts in each; reuse existing words only in the introduction/review conversations. No duplicate words across lessons; each lesson adds something new.
 5. INSTRUCTION STYLE (critical): Write instructions so the AI tutor takes time with the user and does NOT blast long sentences. The tutor must: (a) introduce or remind the user of one word or concept first; (b) then prompt the user to try (e.g. "How would you respond to this?" or "What would you say?") and wait for their response; (c) only after the user responds, give the revision or correct phrasing. Emphasize pacing: one step at a time, give the user time to think and speak. No long monologues; short turns and clear prompts.
 6. SPEAKING-FOCUSED: Instructions must state the target language (${targetLanguage}) and that the goal is speaking practice. Write as if instructing the AI tutor: personal, teacher-to-student. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
 7. TARGETS:
    - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
    - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
    - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
-8. NOTES: Always include notes.title, notes.details, and notes.content (all three STRICTLY required). notes.title: a short title for the notes section (e.g. "This lesson", "Study guide", "What to practice"). notes.details: brief summary (e.g. what this package focuses on, 1–2 sentences). notes.content: study guide—key words/phrases in ${targetLanguage} with pronunciation and meaning; what they're learning; what to work on next. Keep each SHORT. Write in the user's language (not in ${targetLanguage}). Bullet points or 2–4 short lines for details/content. No long paragraphs.
+8. NOTES: Always include notes.title, notes.details, and notes.content (all three STRICTLY required). notes.title: MUST describe the theme of the lesson (e.g. "Greetings and introducing yourself", "Asking how someone is", "Saying thanks and goodbyes")—not generic labels like "Study guide". notes.details: brief summary (e.g. what this package focuses on, 1–2 sentences). notes.content: study guide—key words/phrases in ${targetLanguage} with pronunciation and meaning; what they're learning; what to work on next. Keep each SHORT. Write in the user's language (not in ${targetLanguage}). Bullet points or 2–4 short lines for details/content. No long paragraphs.
 9. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
@@ -134,7 +137,7 @@ function buildUserPrompt(input: GeneratePackageInput): string {
   }
 
   if (analysisResults.length > 0) {
-    parts.push("RECENT ANALYSIS RESULTS (what the user did since last run — use this to decide review and next steps):");
+    parts.push("RECENT ANALYSIS RESULTS (all results since last process — use these to decide review, progression, and topic advancement):");
     analysisResults.forEach((r, i) => {
       parts.push(`--- Result ${i + 1} (${r.createdAt}, topic: ${r.topicKey}) ---`);
       parts.push(`Targets HIT: ${JSON.stringify(r.targetsHit.map(t => t.key))}`);
@@ -150,7 +153,7 @@ function buildUserPrompt(input: GeneratePackageInput): string {
       }
       parts.push("");
     });
-    parts.push("From the above: include REVIEW of what they missed or struggled with; then ONE new topic building on it. Do not duplicate words; only evolve.");
+    parts.push("From the above: (1) Do not repeat the same review as last time—progress. Use basic introductions (we use every time we meet) as review; expand on introductions from the last lesson; (2) If the user seems advanced in a topic (words said, targets hit), move on from that topic; (3) Build new lessons from what they said and what they missed. Do not duplicate words; only evolve.");
   } else {
     parts.push("No new analysis results since last run. If there is an existing package, output an evolved version (e.g. add one small new lesson or adjust notes). If no existing package, create a first lesson.");
   }
