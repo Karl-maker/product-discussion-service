@@ -53,6 +53,6 @@ export interface GeneratedPackage {
   tags: string[];
   conversations: PackageConversation[];
   notes?: PackageNotes;
-  language: string;
+  targetLanguage: string;
   /** Content field: words, writing, pronunciation details (stored in notes.content or description). */
 }

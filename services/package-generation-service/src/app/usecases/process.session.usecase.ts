@@ -21,9 +21,9 @@ export class ProcessSessionUseCase {
   async execute(input: ProcessSessionInput): Promise<void> {
     const { message } = input;
     const userId = message.userId;
-    const language = (message.targetLanguage ?? "").trim().toLowerCase();
+    const targetLanguage = (message.targetLanguage ?? "").trim().toLowerCase();
 
-    if (!userId || !language) {
+    if (!userId || !targetLanguage) {
       if (!userId) {
         console.warn("Package generation: skipping session – missing userId", { sessionId: message.sessionId });
       } else {
@@ -32,11 +32,11 @@ export class ProcessSessionUseCase {
       return;
     }
 
-    const lastProcessedAt = await this.stateRepo.getLastProcessedAt(userId, language);
+    const lastProcessedAt = await this.stateRepo.getLastProcessedAt(userId, targetLanguage);
     if (lastProcessedAt) {
       const oneHourAgo = Date.now() - 60 * 60 * 1000;
       if (new Date(lastProcessedAt).getTime() > oneHourAgo) {
-        console.info("Package generation: skipping – same user+language processed within last hour", { userId, language, lastProcessedAt });
+        console.info("Package generation: skipping – same user+targetLanguage processed within last hour", { userId, targetLanguage, lastProcessedAt });
         return;
       }
     }
@@ -44,16 +44,16 @@ export class ProcessSessionUseCase {
     const resultsSinceLast = lastProcessedAt
       ? allResults.filter((r) => r.createdAt > lastProcessedAt)
       : allResults;
-    const forLanguage = resultsSinceLast.filter(
-      (r) => !r.targetLanguage || r.targetLanguage.toLowerCase() === language
+    const forTargetLanguage = resultsSinceLast.filter(
+      (r) => !r.targetLanguage || r.targetLanguage.toLowerCase() === targetLanguage
     );
 
-    const existingPackage = await this.packageRepo.findByUserIdAndLanguage(userId, language);
+    const existingPackage = await this.packageRepo.findByUserIdAndLanguage(userId, targetLanguage);
 
     const generated = await this.openai.generatePackage({
-      language,
+      targetLanguage,
       existingPackage,
-      analysisResults: forLanguage,
+      analysisResults: forTargetLanguage,
     });
 
     const now = new Date().toISOString();
@@ -73,11 +73,11 @@ export class ProcessSessionUseCase {
       updatedAt: now,
       notes: generated.notes,
       userId,
-      language,
+      targetLanguage,
     };
 
     await this.packageRepo.save(toSave);
-    await this.stateRepo.setLastProcessedAt(userId, language, now);
+    await this.stateRepo.setLastProcessedAt(userId, targetLanguage, now);
 
     if (this.packageGeneratedNotifier) {
       await this.packageGeneratedNotifier.notify(toSave, !!existingPackage);
