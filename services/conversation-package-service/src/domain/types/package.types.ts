@@ -7,6 +7,8 @@ export interface ConversationTarget {
 
 export interface PackageConversation {
   name: string;
+  /** Short description of what this conversation covers (for the user). */
+  description?: string;
   instruction: string;
   targets: ConversationTarget[];
 }
