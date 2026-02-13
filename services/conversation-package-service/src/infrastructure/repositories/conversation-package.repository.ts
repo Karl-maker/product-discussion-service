@@ -58,7 +58,10 @@ export class ConversationPackageRepository {
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
     if (pkg.userId !== undefined) item.userId = pkg.userId;
-    if (pkg.language !== undefined) item.targetLanguage = pkg.language;
+    if (pkg.language !== undefined) {
+      item.targetLanguage = pkg.language;
+      item.targetLanguageNorm = (pkg.language || "").trim().toLowerCase();
+    }
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
@@ -108,8 +111,13 @@ export class ConversationPackageRepository {
       expressionAttributeValues[":category"] = filters.category;
     }
     if (filters.language) {
-      filterExpressions.push("targetLanguage = :targetLanguage");
-      expressionAttributeValues[":targetLanguage"] = filters.language;
+      const langNorm = filters.language.trim().toLowerCase();
+      const langExact = filters.language.trim();
+      expressionAttributeNames["#tl"] = "targetLanguage";
+      expressionAttributeNames["#tlNorm"] = "targetLanguageNorm";
+      expressionAttributeValues[":norm"] = langNorm;
+      expressionAttributeValues[":lang"] = langExact;
+      filterExpressions.push("(#tlNorm = :norm OR (attribute_not_exists(#tlNorm) AND #tl = :lang))");
     }
 
     const result = await this.client.send(
