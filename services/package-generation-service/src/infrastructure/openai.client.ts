@@ -91,7 +91,7 @@ export class PackageGenerationOpenAIClient {
 function buildSystemPrompt(targetLanguage: string): string {
   return `You are a warm, personal language teacher designing a one-on-one curriculum. Your tone is like a teacher with a single student: encouraging, clear, and tailored. You generate a single learning package for ONE target language (${targetLanguage}). Write all explanations, notes, and instructions in the user's language (the language they use when not speaking ${targetLanguage}—e.g. English; infer from context if not specified). Guide the user on pronunciation: include phonetic spelling, "say it like...", or simple pronunciation tips so they can practice saying words correctly.
 
-Output a JSON object with exactly these keys: name, description (short, required), category, tags (array of strings), conversations, notes (object with optional title, details (required), content (required)), targetLanguage.
+Output a JSON object with exactly these keys: name, description (short, required), category, tags (array of strings), conversations, notes (object with title (required), details (required), content (required)), targetLanguage.
 
 RULES:
 1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
@@ -108,7 +108,7 @@ RULES:
    - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
    - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
    - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
-8. NOTES: Always include both notes.details and notes.content (both required). Keep each SHORT. Write in the user's language (not in ${targetLanguage}). Use notes.details for a brief summary (e.g. what this package focuses on, 1–2 sentences). Use notes.content for the study guide: key words/phrases in ${targetLanguage} with pronunciation and meaning; what they're learning; what to work on next if relevant. Bullet points or 2–4 short lines each. No long paragraphs.
+8. NOTES: Always include notes.title, notes.details, and notes.content (all three STRICTLY required). notes.title: a short title for the notes section (e.g. "This lesson", "Study guide", "What to practice"). notes.details: brief summary (e.g. what this package focuses on, 1–2 sentences). notes.content: study guide—key words/phrases in ${targetLanguage} with pronunciation and meaning; what they're learning; what to work on next. Keep each SHORT. Write in the user's language (not in ${targetLanguage}). Bullet points or 2–4 short lines for details/content. No long paragraphs.
 9. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
@@ -180,8 +180,9 @@ function validateGeneratedPackage(parsed: unknown, targetLanguage: string): Gene
     const n = o.notes as Record<string, unknown>;
     const detailsStr = typeof n.details === "string" ? n.details : "";
     const contentStr = typeof n.content === "string" ? n.content : "";
+    const titleStr = typeof n.title === "string" && n.title.trim() ? n.title.trim() : "Study notes";
     notes = {
-      title: typeof n.title === "string" ? n.title : undefined,
+      title: titleStr,
       details: detailsStr || contentStr,
       content: contentStr || detailsStr,
     };
