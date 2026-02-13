@@ -58,7 +58,7 @@ export class ConversationPackageRepository {
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
     if (pkg.userId !== undefined) item.userId = pkg.userId;
-    if (pkg.language !== undefined) item.language = pkg.language;
+    if (pkg.language !== undefined) item.lang = pkg.language;
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
@@ -108,9 +108,9 @@ export class ConversationPackageRepository {
       expressionAttributeValues[":category"] = filters.category;
     }
     if (filters.language) {
-      expressionAttributeNames["#lang"] = "language";
-      filterExpressions.push("#lang = :language");
-      expressionAttributeValues[":language"] = filters.language;
+      expressionAttributeNames["#language"] = "language";
+      filterExpressions.push("(lang = :lang OR #language = :lang)");
+      expressionAttributeValues[":lang"] = filters.language;
     }
 
     const result = await this.client.send(
@@ -176,7 +176,8 @@ export class ConversationPackageRepository {
     if (item.notes != null && typeof item.notes === "object")
       pkg.notes = item.notes as PackageNotes;
     if (typeof item.userId === "string") pkg.userId = item.userId;
-    if (typeof item.language === "string") pkg.language = item.language;
+    const langVal = item.lang ?? item.language;
+    if (typeof langVal === "string") pkg.language = langVal;
     return pkg;
   }
 }
