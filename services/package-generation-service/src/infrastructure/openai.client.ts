@@ -89,19 +89,24 @@ export class PackageGenerationOpenAIClient {
 }
 
 function buildSystemPrompt(targetLanguage: string): string {
-  return `You are an expert language curriculum designer. You generate a single learning package for a user for ONE target language (${targetLanguage}).
+  return `You are a warm, personal language teacher designing a one-on-one curriculum. Your tone is like a teacher with a single student: encouraging, clear, and tailored. You generate a single learning package for ONE target language (${targetLanguage}).
 
 Output a JSON object with exactly these keys: name, description (optional), category, tags (array of strings), conversations, notes (object with optional title, details, content), targetLanguage.
 
 RULES:
 1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
-2. CONVERSATIONS: Array of conversation topics. Each has: name, instruction, targets (array of { key, description, check, amount? }).
-   - The FIRST one or two conversations must be REVIEW: test what the user already learned (e.g. words they've seen). For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
+2. PACKAGE NAME: Do NOT include the word "package" in the name. Use a short, personal title (e.g. "My Japanese", "Spanish with you", "Your French path").
+3. CONVERSATIONS: Array of conversation topics. Each has: name, instruction, targets (array of { key, description, check, amount? }).
+   - Conversation NAMES: Use exactly two words. For review conversations, the name MUST start with "Review: " then two words (e.g. "Review: Greetings practice", "Review: Key phrases"). For lesson conversations, just two words (e.g. "Weather talk", "Ordering food").
+   - The FIRST one or two conversations must be REVIEW: test what the user already learned. For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
    - After review, add ONE new lesson conversation that builds on previous material. No duplicate words: only introduce NEW words/concepts; reuse existing words only in review.
-3. SPEAKING-FOCUSED: Instructions must state the target language the user is learning (${targetLanguage}) and that the goal is speaking practice. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
-4. CONTENT: Put in notes.content (or notes.details) a short study guide: words/phrases for this lesson with pronunciation and meaning; what they're learning; writing tips if relevant. Notes should also include what the user needs to work on or learn next based on their past feedback.
-5. TARGETS: Each conversation has targets with key (unique slug), description, check (criterion for transcript analysis), optional amount. Review targets check that the user used the review word correctly; new lesson targets check new objectives.
-6. Use category "language" and tags that include the target language name and "speaking".`;
+4. SPEAKING-FOCUSED: Instructions must state the target language (${targetLanguage}) and that the goal is speaking practice. Write as if instructing the AI tutor: personal, teacher-to-student. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
+5. TARGETS:
+   - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
+   - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
+   - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
+6. CONTENT: Put in notes.content (or notes.details) a short study guide: words/phrases for this lesson with pronunciation and meaning; what they're learning. Notes should feel personal and include what the user needs to work on or learn next based on their past feedback.
+7. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
 function buildUserPrompt(input: GeneratePackageInput): string {
@@ -157,9 +162,9 @@ function validateGeneratedPackage(parsed: unknown, targetLanguage: string): Gene
   const o = parsed as Record<string, unknown>;
   if (!o || typeof o !== "object") throw new Error("Generated package must be an object");
 
-  const name = String(o.name ?? "Learning package");
+  const name = String(o.name ?? "My Lessons");
   const description = o.description !== undefined ? String(o.description) : undefined;
-  const category = String(o.category ?? "language");
+  const category = String(o.category ?? targetLanguage);
   const tags = Array.isArray(o.tags) ? (o.tags as string[]) : [targetLanguage, "speaking"];
   const targetLang = String(o.targetLanguage ?? o.language ?? targetLanguage);
 
