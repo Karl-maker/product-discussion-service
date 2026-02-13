@@ -17,13 +17,13 @@ export class GenerationStateRepository {
     this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
   }
 
-  async getLastProcessedAt(userId: string, language: string): Promise<string | null> {
+  async getLastProcessedAt(userId: string, targetLanguage: string): Promise<string | null> {
     const result = await this.client.send(
       new GetCommand({
         TableName: this.tableName,
         Key: {
           PK: `USER#${userId}`,
-          SK: `LANGUAGE#${language}`,
+          SK: `LANGUAGE#${targetLanguage}`,
         },
       })
     );
@@ -31,13 +31,13 @@ export class GenerationStateRepository {
     return typeof at === "string" ? at : null;
   }
 
-  async setLastProcessedAt(userId: string, language: string, at: string): Promise<void> {
+  async setLastProcessedAt(userId: string, targetLanguage: string, at: string): Promise<void> {
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
         Item: {
           PK: `USER#${userId}`,
-          SK: `LANGUAGE#${language}`,
+          SK: `LANGUAGE#${targetLanguage}`,
           lastProcessedAt: at,
         },
       })

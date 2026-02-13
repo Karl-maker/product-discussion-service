@@ -14,7 +14,7 @@ export interface StoredPackage {
   updatedAt: string;
   notes?: GeneratedPackage["notes"];
   userId: string;
-  language: string;
+  targetLanguage: string;
 }
 
 export class UserPackageRepository {
@@ -29,13 +29,13 @@ export class UserPackageRepository {
     this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
   }
 
-  /** Find the user's package for this language (at most one). Stored/filtered as targetLanguage in DynamoDB. */
-  async findByUserIdAndLanguage(userId: string, language: string): Promise<StoredPackage | null> {
+  /** Find the user's package for this targetLanguage (at most one). Stored/filtered as targetLanguage in DynamoDB. */
+  async findByUserIdAndLanguage(userId: string, targetLanguage: string): Promise<StoredPackage | null> {
     const result = await this.client.send(
       new ScanCommand({
         TableName: this.tableName,
         FilterExpression: "userId = :uid AND targetLanguage = :targetLanguage",
-        ExpressionAttributeValues: { ":uid": userId, ":targetLanguage": language },
+        ExpressionAttributeValues: { ":uid": userId, ":targetLanguage": targetLanguage },
         Limit: 2,
       })
     );
@@ -60,7 +60,7 @@ export class UserPackageRepository {
       userId: pkg.userId,
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
-    item.targetLanguage = pkg.language;
+    item.targetLanguage = pkg.targetLanguage;
     await this.client.send(
       new PutCommand({
         TableName: this.tableName,
@@ -71,7 +71,7 @@ export class UserPackageRepository {
 }
 
 function mapToStored(item: Record<string, unknown>): StoredPackage {
-  const langVal = item.targetLanguage ?? item.lang ?? item.language;
+  const val = item.targetLanguage ?? item.lang ?? item.language;
   return {
     id: item.id as string,
     name: item.name as string,
@@ -83,6 +83,6 @@ function mapToStored(item: Record<string, unknown>): StoredPackage {
     updatedAt: item.updatedAt as string,
     notes: item.notes as StoredPackage["notes"],
     userId: item.userId as string,
-    language: typeof langVal === "string" ? langVal : "",
+    targetLanguage: typeof val === "string" ? val : "",
   };
 }

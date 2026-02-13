@@ -12,7 +12,7 @@ import type {
 import type { StoredPackage } from "./repositories/user-package.repository";
 
 export interface GeneratePackageInput {
-  language: string;
+  targetLanguage: string;
   existingPackage: StoredPackage | null;
   /** Analysis results since last processed (newest first). */
   analysisResults: AnalysisResultRecord[];
@@ -39,7 +39,7 @@ export class PackageGenerationOpenAIClient {
   async generatePackage(input: GeneratePackageInput): Promise<GeneratedPackage> {
     if (!this.apiKey) throw new Error("OpenAI client not initialized");
 
-    const systemPrompt = buildSystemPrompt(input.language);
+    const systemPrompt = buildSystemPrompt(input.targetLanguage);
     const userPrompt = buildUserPrompt(input);
 
     const controller = new AbortController();
@@ -84,31 +84,31 @@ export class PackageGenerationOpenAIClient {
       throw new Error("OpenAI response is not valid JSON");
     }
 
-    return validateGeneratedPackage(parsed, input.language);
+    return validateGeneratedPackage(parsed, input.targetLanguage);
   }
 }
 
-function buildSystemPrompt(language: string): string {
-  return `You are an expert language curriculum designer. You generate a single learning package for a user for ONE language (${language}).
+function buildSystemPrompt(targetLanguage: string): string {
+  return `You are an expert language curriculum designer. You generate a single learning package for a user for ONE target language (${targetLanguage}).
 
-Output a JSON object with exactly these keys: name, description (optional), category, tags (array of strings), conversations, notes (object with optional title, details, content), language.
+Output a JSON object with exactly these keys: name, description (optional), category, tags (array of strings), conversations, notes (object with optional title, details, content), targetLanguage.
 
 RULES:
-1. The user must have at most ONE package per language. Your output is that one package for the given language.
+1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
 2. CONVERSATIONS: Array of conversation topics. Each has: name, instruction, targets (array of { key, description, check, amount? }).
-   - The FIRST one or two conversations must be REVIEW: test what the user already learned (e.g. words they've seen). For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${language}") so the user is tested on that word.
+   - The FIRST one or two conversations must be REVIEW: test what the user already learned (e.g. words they've seen). For each review conversation, the instruction MUST explicitly tell the AI to START the conversation with a specific word or phrase (e.g. "Start the conversation by saying [word] and encourage the user to respond in ${targetLanguage}") so the user is tested on that word.
    - After review, add ONE new lesson conversation that builds on previous material. No duplicate words: only introduce NEW words/concepts; reuse existing words only in review.
-3. SPEAKING-FOCUSED: Instructions must state the language the user is learning (${language}) and that the goal is speaking practice. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
+3. SPEAKING-FOCUSED: Instructions must state the target language the user is learning (${targetLanguage}) and that the goal is speaking practice. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
 4. CONTENT: Put in notes.content (or notes.details) a short study guide: words/phrases for this lesson with pronunciation and meaning; what they're learning; writing tips if relevant. Notes should also include what the user needs to work on or learn next based on their past feedback.
 5. TARGETS: Each conversation has targets with key (unique slug), description, check (criterion for transcript analysis), optional amount. Review targets check that the user used the review word correctly; new lesson targets check new objectives.
-6. Use category "language" and tags that include the language name and "speaking".`;
+6. Use category "language" and tags that include the target language name and "speaking".`;
 }
 
 function buildUserPrompt(input: GeneratePackageInput): string {
-  const { language, existingPackage, analysisResults } = input;
+  const { targetLanguage, existingPackage, analysisResults } = input;
   const parts: string[] = [];
 
-  parts.push(`Language: ${language}`);
+  parts.push(`Target language: ${targetLanguage}`);
   parts.push("");
 
   if (existingPackage) {
@@ -148,20 +148,20 @@ function buildUserPrompt(input: GeneratePackageInput): string {
   }
 
   parts.push("");
-  parts.push("Return ONLY valid JSON with keys: name, description, category, tags, conversations, notes, language. No markdown.");
+  parts.push("Return ONLY valid JSON with keys: name, description, category, tags, conversations, notes, targetLanguage. No markdown.");
 
   return parts.join("\n");
 }
 
-function validateGeneratedPackage(parsed: unknown, language: string): GeneratedPackage {
+function validateGeneratedPackage(parsed: unknown, targetLanguage: string): GeneratedPackage {
   const o = parsed as Record<string, unknown>;
   if (!o || typeof o !== "object") throw new Error("Generated package must be an object");
 
   const name = String(o.name ?? "Learning package");
   const description = o.description !== undefined ? String(o.description) : undefined;
   const category = String(o.category ?? "language");
-  const tags = Array.isArray(o.tags) ? (o.tags as string[]) : [language, "speaking"];
-  const lang = String(o.language ?? language);
+  const tags = Array.isArray(o.tags) ? (o.tags as string[]) : [targetLanguage, "speaking"];
+  const targetLang = String(o.targetLanguage ?? o.language ?? targetLanguage);
 
   const conversations = Array.isArray(o.conversations)
     ? (o.conversations as unknown[]).map(validateConversation)
@@ -184,7 +184,7 @@ function validateGeneratedPackage(parsed: unknown, language: string): GeneratedP
     tags,
     conversations,
     notes,
-    language: lang,
+    targetLanguage: targetLang,
   };
 }
 

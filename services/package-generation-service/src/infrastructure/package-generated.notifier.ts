@@ -4,7 +4,7 @@ import type { StoredPackage } from "./repositories/user-package.repository";
 export interface PackageGeneratedEvent {
   event: "package.generated";
   userId: string;
-  language: string;
+  targetLanguage: string;
   packageId: string;
   packageName: string;
   generatedAt: string;
@@ -29,7 +29,7 @@ export class SNSPackageGeneratedNotifier implements PackageGeneratedNotifier {
     const payload: PackageGeneratedEvent = {
       event: "package.generated",
       userId: pkg.userId,
-      language: pkg.language,
+      targetLanguage: pkg.targetLanguage,
       packageId: pkg.id,
       packageName: pkg.name,
       generatedAt: pkg.updatedAt,
