@@ -174,8 +174,10 @@ resource "aws_lambda_function" "package_generation" {
   handler       = "dist/index.handler"
   runtime       = "nodejs20.x"
   timeout       = 60
-  filename      = abspath("${path.module}/../../../services/package-generation-service/function.zip")
-  role          = module.package_generation_iam_role.role_arn
+  memory_size   = 512
+  filename         = abspath("${path.module}/../../../services/package-generation-service/function.zip")
+  source_code_hash = filebase64sha256(abspath("${path.module}/../../../services/package-generation-service/function.zip"))
+  role             = module.package_generation_iam_role.role_arn
 
   environment {
     variables = {
