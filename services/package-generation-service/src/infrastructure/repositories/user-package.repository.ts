@@ -1,9 +1,6 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DynamoDBDocumentClient,
-  PutCommand,
-  ScanCommand,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient, ScanCommand as RawScanCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { unmarshall } from "@aws-sdk/util-dynamodb";
 import type { GeneratedPackage } from "../../domain/types";
 
 /** Stored package item (matches conversation-package-service table shape). */
@@ -23,30 +20,35 @@ export interface StoredPackage {
 
 export class UserPackageRepository {
   private readonly tableName: string;
-  private readonly client: DynamoDBDocumentClient;
+  private readonly docClient: DynamoDBDocumentClient;
+  private readonly rawClient: DynamoDBClient;
 
   constructor(tableName: string) {
     if (!tableName) {
       throw new Error("CONVERSATION_PACKAGES_TABLE environment variable is not set");
     }
     this.tableName = tableName;
-    this.client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+    this.rawClient = new DynamoDBClient({});
+    this.docClient = DynamoDBDocumentClient.from(this.rawClient);
   }
 
-  /** Find the user's package for this language (at most one). Reserved words: language (and userId in some contexts) use attribute names. */
+  /** Find the user's package for this language (at most one). Uses raw client + ExpressionAttributeNames to avoid reserved word "language". */
   async findByUserIdAndLanguage(userId: string, language: string): Promise<StoredPackage | null> {
-    const result = await this.client.send(
-      new ScanCommand({
+    const result = await this.rawClient.send(
+      new RawScanCommand({
         TableName: this.tableName,
         FilterExpression: "#uid = :uid AND #lang = :lang",
         ExpressionAttributeNames: { "#uid": "userId", "#lang": "language" },
-        ExpressionAttributeValues: { ":uid": userId, ":lang": language },
+        ExpressionAttributeValues: {
+          ":uid": { S: userId },
+          ":lang": { S: language },
+        },
         Limit: 2,
       })
     );
-    const items = (result.Items ?? []) as Array<Record<string, unknown> & { id: string }>;
+    const items = (result.Items ?? []).map((item) => unmarshall(item) as Record<string, unknown>);
     if (items.length === 0) return null;
-    return mapToStored(items[0]);
+    return mapToStored(items[0] as Record<string, unknown> & { id: string });
   }
 
   /** Create or update package. */
@@ -66,7 +68,7 @@ export class UserPackageRepository {
       language: pkg.language,
     };
     if (pkg.notes !== undefined) item.notes = pkg.notes;
-    await this.client.send(
+    await this.docClient.send(
       new PutCommand({
         TableName: this.tableName,
         Item: item,
