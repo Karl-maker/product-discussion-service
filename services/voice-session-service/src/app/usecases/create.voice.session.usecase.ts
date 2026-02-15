@@ -6,6 +6,8 @@ export interface CreateVoiceSessionInput {
   instructions?: string;
   /** When true, session returns text-only output (no audio); default false = audio output */
   textOnlyOutput?: boolean;
+  /** When true, use stronger model (gpt-4o-realtime-preview) instead of mini */
+  useStrongerModel?: boolean;
   userId?: string;
   targetLanguage?: string;
 }
@@ -14,6 +16,8 @@ export interface CreateVoiceSessionOutput {
   client_secret: string;
   expires_at: string;
   session_id: string;
+  /** Model used (for client to connect with same model) */
+  model: string;
 }
 
 // Template instructions: friendly, clarifying, strict on topic, low-temperature style
@@ -51,7 +55,10 @@ export class CreateVoiceSessionUseCase {
     const session = await this.openAIClient.createSession(
       combinedInstructions,
       sessionId,
-      { textOnlyOutput: input.textOnlyOutput === true }
+      {
+        textOnlyOutput: input.textOnlyOutput === true,
+        useStrongerModel: input.useStrongerModel === true,
+      }
     );
 
     // Calculate TTL (30 days from now)
@@ -76,6 +83,7 @@ export class CreateVoiceSessionUseCase {
       client_secret: session.client_secret,
       expires_at: session.expires_at,
       session_id: session.session_id,
+      model: session.model,
     };
   }
 }
