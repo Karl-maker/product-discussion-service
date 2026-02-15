@@ -97,7 +97,7 @@ RULES:
 1. The user must have at most ONE package per target language. Your output is that one package for the given target language.
 2. PACKAGE NAME: One to two words only. Must be unique to the goal of this lesson and explain what the user is learning (e.g. "Greetings basics", "Introductions practice", "Weather talk", "Ordering food"). Do NOT include the word "package" or generic titles like "My Japanese". Each package name should reflect the specific focus of the 10 conversations.
 3. PACKAGE DESCRIPTION: Always include a short description (one or two sentences) that summarizes what this package covers and the focus (e.g. "Review and new greetings. Practice saying hello and thanks in ${targetLanguage}."). Keep it brief and personal.
-4. CONVERSATIONS: Output exactly 10 conversations. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }).
+4. CONVERSATIONS: Output exactly 10 conversations. Each has: name, description (short, required), instruction, targets (array of { key, description, check, amount? }). Each conversation MUST have at least 3 targets.
    - CONVERSATION DESCRIPTION: Every conversation MUST have a short description (one sentence) explaining what this conversation is about and what the user will practice. Write in the user's language.
    - Conversation NAMES: Use exactly two words. For the single review conversation, the name MUST start with "Quick review: " then two words (e.g. "Quick review: Greetings"). For lesson conversations, just two words (e.g. "Weather talk", "Ordering food").
    - ONE QUICK REVIEW, THEN MOVE ON: Put all revisions in ONE conversation at the start. Name it "Quick review: [topic]" (e.g. "Quick review: Greetings"). In that single conversation, the tutor does a short back-and-forth: ask "How would you respond to [situation X]?" or "What would you say if [Y]?" → user responds → tutor gives brief revision or praise, then next prompt. Do not spread review across 2–3 conversations; group it in one, then the remaining 9 conversations are lessons.
@@ -108,10 +108,12 @@ RULES:
    - FLOW AND PROGRESSION: Make the 10 conversations flow into each other and build on each other. Each lesson should naturally lead to the next (e.g. greetings → asking how someone is → saying thanks and goodbye → next meeting). Later conversations should assume and use what was practiced earlier. The package should feel like one continuous learning arc, not a set of disconnected topics.
 5. INSTRUCTION STYLE (critical): Write instructions so the AI tutor takes time with the user and does NOT blast long sentences. The tutor must: (a) introduce or remind the user of one word or concept first; (b) then prompt the user to try (e.g. "How would you respond to this?" or "What would you say?") and wait for their response; (c) only after the user responds, give the revision or correct phrasing. Emphasize pacing: one step at a time, give the user time to think and speak. No long monologues; short turns and clear prompts.
 6. SPEAKING-FOCUSED: Instructions must state the target language (${targetLanguage}) and that the goal is speaking practice. Write as if instructing the AI tutor: personal, teacher-to-student. The AI should conduct the conversation in the target language where appropriate and prompt the user to speak.
-7. TARGETS:
-   - description: Keep SHORT (one brief phrase; e.g. "Say hello", "Use the new word").
-   - check: Write as an instruction for the AI that will analyze the transcript. Use the form "Did the user [do X]?" or "Did the user say [word/phrase]?" (e.g. "Did the user say konnichiwa?", "Did the user greet in ${targetLanguage}?", "Did the user use the word for thank you?"). One clear, yes/no question per target.
-   - key (unique slug), optional amount as before. Review targets: check that the user said or used the review word correctly; new lesson targets: check new objectives.
+7. TARGETS: Every conversation must have at least 3 targets. Focus targets on: (a) words or phrases to say, (b) pronunciation, (c) responding to a question with a specific phrase.
+   - Words to say: description like "Say [word/phrase] in ${targetLanguage}", check like "Did the user say [word/phrase]?" (specify the exact word or phrase).
+   - Pronunciation: description like "Pronounce [word] clearly" or "Say [word] with correct pronunciation", check like "Did the user attempt to pronounce [word]?" or "Did the user say [word] with acceptable pronunciation?".
+   - Respond to question: description like "Respond to [question/situation] with [expected phrase or type of answer]", check like "Did the user respond to the tutor's question with [phrase or equivalent]?" (be specific about what a good response contains).
+   - description: Keep SHORT but concrete (e.g. "Say konnichiwa", "Pronounce arigatou correctly", "Respond to 'How are you?' with a greeting or feeling").
+   - check: One clear yes/no question for the transcript analyzer. key (unique slug), optional amount as before.
 8. NOTES: Always include notes.title, notes.details, and notes.content (all three STRICTLY required). notes.title: MUST describe the theme of the lesson (e.g. "Greetings and introducing yourself", "Asking how someone is")—not generic labels like "Study guide". notes.details: brief summary (e.g. what this package focuses on, 1–2 sentences). notes.content: Do NOT use lists or bullet points. Write a short paragraph in the user's language (not in ${targetLanguage}) that describes what the user will learn in this lesson and what they will improve (e.g. what skills or phrases they'll practice, what they'll get better at). One flowing paragraph only.
 9. Use category "language" and tags that include the target language name and "speaking".`;
 }
@@ -178,7 +180,7 @@ function validateGeneratedPackage(parsed: unknown, targetLanguage: string): Gene
   const targetLang = String(o.targetLanguage ?? o.language ?? targetLanguage);
 
   const conversations = Array.isArray(o.conversations)
-    ? (o.conversations as unknown[]).map(validateConversation)
+    ? (o.conversations as unknown[]).map((c, i) => validateConversation(c, i))
     : [];
 
   let notes: PackageNotes | undefined;
@@ -205,22 +207,51 @@ function validateGeneratedPackage(parsed: unknown, targetLanguage: string): Gene
   };
 }
 
-function validateConversation(c: unknown): PackageConversation {
+const MIN_TARGETS_PER_CONVERSATION = 3;
+
+const PLACEHOLDER_TARGETS: Array<{ key: string; description: string; check: string }> = [
+  { key: "say-words", description: "Say the target words or phrases in the conversation", check: "Did the user say the target words or phrases?" },
+  { key: "pronunciation", description: "Use clear pronunciation for the new words", check: "Did the user attempt to pronounce the words clearly?" },
+  { key: "respond-to-question", description: "Respond to the tutor's question with an appropriate phrase", check: "Did the user respond to the tutor's question with a relevant phrase?" },
+];
+
+function ensureAtLeastThreeTargets(
+  targets: Array<{ key: string; description: string; check: string; amount?: number }>,
+  conversationIndex: number
+): Array<{ key: string; description: string; check: string; amount?: number }> {
+  if (targets.length >= MIN_TARGETS_PER_CONVERSATION) return targets;
+  const padded = [...targets];
+  let i = 0;
+  while (padded.length < MIN_TARGETS_PER_CONVERSATION) {
+    const p = PLACEHOLDER_TARGETS[i % PLACEHOLDER_TARGETS.length];
+    padded.push({
+      key: `conv-${conversationIndex}-${p.key}`,
+      description: p.description,
+      check: p.check,
+    });
+    i++;
+  }
+  return padded;
+}
+
+function validateConversation(c: unknown, index: number): PackageConversation {
   const o = (c as Record<string, unknown>) ?? {};
+  const rawTargets = Array.isArray(o.targets)
+    ? (o.targets as unknown[]).map((t) => {
+        const x = (t as Record<string, unknown>) ?? {};
+        return {
+          key: String(x.key ?? ""),
+          description: String(x.description ?? ""),
+          check: String(x.check ?? ""),
+          amount: typeof x.amount === "number" ? x.amount : undefined,
+        };
+      })
+    : [];
+  const targets = ensureAtLeastThreeTargets(rawTargets, index);
   return {
     name: String(o.name ?? "Conversation"),
     description: o.description !== undefined ? String(o.description) : undefined,
     instruction: String(o.instruction ?? ""),
-    targets: Array.isArray(o.targets)
-      ? (o.targets as unknown[]).map((t) => {
-          const x = (t as Record<string, unknown>) ?? {};
-          return {
-            key: String(x.key ?? ""),
-            description: String(x.description ?? ""),
-            check: String(x.check ?? ""),
-            amount: typeof x.amount === "number" ? x.amount : undefined,
-          };
-        })
-      : [],
+    targets,
   };
 }
