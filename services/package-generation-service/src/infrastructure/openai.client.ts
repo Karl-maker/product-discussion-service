@@ -11,11 +11,19 @@ import type {
 } from "../domain/types";
 import type { StoredPackage } from "./repositories/user-package.repository";
 
+export interface UserContextForPackage {
+  profession?: string;
+  initialFluency?: string;
+  purposeOfUsage?: string;
+}
+
 export interface GeneratePackageInput {
   targetLanguage: string;
   existingPackage: StoredPackage | null;
   /** Analysis results since last processed (newest first). */
   analysisResults: AnalysisResultRecord[];
+  /** User profile: profession, fluency, purpose — personalize lessons and pace by this. */
+  userContext?: UserContextForPackage;
 }
 
 export class PackageGenerationOpenAIClient {
@@ -115,15 +123,29 @@ RULES:
    - description: Keep SHORT but concrete (e.g. "Say konnichiwa", "Pronounce arigatou correctly", "Respond to 'How are you?' with a greeting or feeling").
    - check: One clear yes/no question for the transcript analyzer. key (unique slug), optional amount as before.
 8. NOTES: Always include notes.title, notes.details, and notes.content (all three STRICTLY required). notes.title: MUST describe the theme of the lesson (e.g. "Greetings and introducing yourself", "Asking how someone is")—not generic labels like "Study guide". notes.details: brief summary (e.g. what this package focuses on, 1–2 sentences). notes.content: Do NOT use lists or bullet points. Write a short paragraph in the user's language (not in ${targetLanguage}) that describes what the user will learn in this lesson and what they will improve (e.g. what skills or phrases they'll practice, what they'll get better at). One flowing paragraph only.
-9. Use category "language" and tags that include the target language name and "speaking".`;
+9. Use category "language" and tags that include the target language name and "speaking".
+10. WHEN THE USER PROMPT INCLUDES "ABOUT THE USER" (profession, initial fluency, purpose of usage):
+   - TARGET STRONGLY: Design the package and every lesson around who they are and why they are learning. Use vocabulary, scenarios, and goals that fit their profession and purpose (e.g. doctor → medical terms and patient interactions; travel → phrases for booking, directions, dining; business → meetings and email; exams → formal and academic phrases). Personalize the lesson names, instructions, and notes so the user sees themselves in the content.
+   - PACE BY FLUENCY: initialFluency drives how aggressive the package is. Beginner = gentle pace, more repetition, smaller steps, clearer scaffolding. Intermediate = moderate pace, less repetition, assume some retention. Advanced = aggressive pace: fewer repeats, assume they pick up quickly, push new material and longer exchanges; do not over-explain or drill basics they likely know.
+   - DO NOT RE-REVIEW: If something was already reviewed in the previous package or the last run and the user did well (targets hit, positive feedback), do NOT bring it back in quick review or as new material. Treat it as known from now on. Only include in quick review what they actually struggled with or missed. In future lessons, assume they know previously covered material unless analysis showed they missed it.`;
 }
 
 function buildUserPrompt(input: GeneratePackageInput): string {
-  const { targetLanguage, existingPackage, analysisResults } = input;
+  const { targetLanguage, existingPackage, analysisResults, userContext } = input;
   const parts: string[] = [];
 
   parts.push(`Target language: ${targetLanguage}`);
   parts.push("");
+
+  if (userContext && (userContext.profession || userContext.initialFluency || userContext.purposeOfUsage)) {
+    parts.push("ABOUT THE USER (use this to target the package and personalize every lesson):");
+    if (userContext.profession) parts.push(`- Profession: ${userContext.profession}`);
+    if (userContext.initialFluency) parts.push(`- Initial fluency: ${userContext.initialFluency}`);
+    if (userContext.purposeOfUsage) parts.push(`- Purpose of learning: ${userContext.purposeOfUsage}`);
+    parts.push("");
+    parts.push("Target the package strongly to their profession and purpose. Pace lessons by their fluency (see system rules). Do not review again what they already reviewed successfully in the last run—expect them to know it in future.");
+    parts.push("");
+  }
 
   if (existingPackage) {
     parts.push("LAST PACKAGE (the user's current package — compare and progress from it):");
@@ -158,9 +180,9 @@ function buildUserPrompt(input: GeneratePackageInput): string {
       }
       parts.push("");
     });
-    parts.push("From the above: (1) One Quick review conversation only—group all revisions there; use 'How would you respond to [xyz]?' back-and-forth as revision, then move on. (2) If the last lesson already reviewed something and they did well, don't bring it back unless they had bad feedback. (3) Push the user to expand on what they learnt; build new lessons from what they said and what they missed. Do not duplicate words; only evolve.");
+    parts.push("From the above: (1) One Quick review conversation only—group all revisions there; use 'How would you respond to [xyz]?' back-and-forth as revision, then move on. (2) Do NOT re-review what they already reviewed successfully; treat it as known. Only include in quick review what they missed or had bad feedback on. (3) Push the user to expand on what they learnt; build new lessons from what they said and what they missed. Do not duplicate words; only evolve.");
   } else {
-    parts.push("No new analysis results since last run. If there is an existing package above, output an evolved version: use a different package name (not the same as the last one), add or adjust lessons so the package progresses. If no existing package, create a first lesson.");
+    parts.push("No new analysis results since last run. If there is an existing package above, output an evolved version: use a different package name (not the same as the last one), add or adjust lessons so the package progresses. Remember: do not review again material they already covered successfully—expect them to know it. If no existing package, create a first lesson.");
   }
 
   parts.push("");

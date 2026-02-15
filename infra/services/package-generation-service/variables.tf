@@ -33,3 +33,10 @@ variable "voice_session_queue_url" {
   description = "URL of the voice session FIFO SQS queue (optional; resolved by name if empty)"
   default     = ""
 }
+
+# Conversation users table (for user profile: profession, initialFluency, purposeOfUsage). If set, Lambda can read profile to personalize packages.
+variable "conversation_users_table_name" {
+  type        = string
+  description = "Name of the conversation-users DynamoDB table (same project: project_name-environment-conversation-users)"
+  default     = ""
+}

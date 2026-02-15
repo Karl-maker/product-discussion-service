@@ -2,6 +2,7 @@ import type { SessionMessage } from "../../domain/types";
 import { GenerationStateRepository } from "../../infrastructure/repositories/generation-state.repository";
 import { AnalysisResultRepository } from "../../infrastructure/repositories/analysis-result.repository";
 import { UserPackageRepository, type StoredPackage } from "../../infrastructure/repositories/user-package.repository";
+import type { UserProfileRepository } from "../../infrastructure/repositories/user-profile.repository";
 import { PackageGenerationOpenAIClient } from "../../infrastructure/openai.client";
 import type { PackageGeneratedNotifier } from "../../infrastructure/package-generated.notifier";
 
@@ -14,6 +15,7 @@ export class ProcessSessionUseCase {
     private readonly stateRepo: GenerationStateRepository,
     private readonly analysisRepo: AnalysisResultRepository,
     private readonly packageRepo: UserPackageRepository,
+    private readonly profileRepo: UserProfileRepository,
     private readonly openai: PackageGenerationOpenAIClient,
     private readonly packageGeneratedNotifier?: PackageGeneratedNotifier
   ) {}
@@ -49,11 +51,13 @@ export class ProcessSessionUseCase {
     );
 
     const existingPackage = await this.packageRepo.findByUserIdAndLanguage(userId, targetLanguage);
+    const userContext = await this.profileRepo.getProfileContext(userId);
 
     const generated = await this.openai.generatePackage({
       targetLanguage,
       existingPackage,
       analysisResults: forTargetLanguage,
+      userContext: userContext ?? undefined,
     });
 
     const now = new Date().toISOString();

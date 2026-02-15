@@ -77,7 +77,8 @@ resource "aws_dynamodb_table" "generation_state" {
 # Conversation packages and analysis results use same naming as conversation-service (tables must exist)
 locals {
   conversation_packages_table_name = "${var.project_name}-${var.environment}-conversation-packages"
-  analysis_results_table_name     = "${var.project_name}-${var.environment}-conversation-analysis-results"
+  analysis_results_table_name       = "${var.project_name}-${var.environment}-conversation-analysis-results"
+  conversation_users_table_name    = var.conversation_users_table_name
 }
 
 # IAM role for package-generation Lambda
@@ -98,22 +99,32 @@ module "package_generation_iam_role" {
 
 # Policy: read analysis results, read+write conversation packages (same table names as conversation-service).
 # Include GSI so Lambda can Query by userId+createdAt for latest package.
+# Optionally read conversation-users table for user profile (profession, fluency, purpose).
 resource "aws_iam_role_policy" "dynamodb_tables" {
   name   = "package-generation-dynamodb-${var.environment}"
   role   = module.package_generation_iam_role.role_name
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem"]
-        Resource = [
-          "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}",
-          "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}/index/userId-createdAt-index",
-          "arn:aws:dynamodb:*:*:table/${local.analysis_results_table_name}",
-        ]
-      },
-    ]
+    Statement = concat(
+      [
+        {
+          Effect   = "Allow"
+          Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem"]
+          Resource = [
+            "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}",
+            "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}/index/userId-createdAt-index",
+            "arn:aws:dynamodb:*:*:table/${local.analysis_results_table_name}",
+          ]
+        },
+      ],
+      local.conversation_users_table_name != "" ? [
+        {
+          Effect   = "Allow"
+          Action   = ["dynamodb:GetItem"]
+          Resource = ["arn:aws:dynamodb:*:*:table/${local.conversation_users_table_name}"]
+        }
+      ] : []
+    )
   })
 }
 
@@ -186,6 +197,7 @@ resource "aws_lambda_function" "package_generation" {
       GENERATION_STATE_TABLE        = aws_dynamodb_table.generation_state.name
       CONVERSATION_PACKAGES_TABLE   = local.conversation_packages_table_name
       ANALYSIS_RESULTS_TABLE        = local.analysis_results_table_name
+      CONVERSATION_USERS_TABLE      = local.conversation_users_table_name
       PACKAGE_GENERATED_TOPIC_ARN   = aws_sns_topic.package_generated.arn
       PROJECT_NAME                  = var.project_name
       ENVIRONMENT                   = var.environment
