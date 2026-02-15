@@ -25,7 +25,7 @@ variable "project_name" {
 variable "schedule_cron_expression" {
   type        = string
   description = "EventBridge schedule expression (cron or rate). Default: every 5 minutes."
-  default     = "rate(5 minutes)"
+  default     = "rate(3 hours)"
 }
 
 # Email service queue: package-notice sends lesson notices here (consumed by email-service)
