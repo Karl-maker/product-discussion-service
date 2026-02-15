@@ -1,6 +1,7 @@
 import { GenerationStateRepository } from "./infrastructure/repositories/generation-state.repository";
 import { AnalysisResultRepository } from "./infrastructure/repositories/analysis-result.repository";
 import { UserPackageRepository } from "./infrastructure/repositories/user-package.repository";
+import { UserProfileRepository } from "./infrastructure/repositories/user-profile.repository";
 import { PackageGenerationOpenAIClient } from "./infrastructure/openai.client";
 import { SNSPackageGeneratedNotifier } from "./infrastructure/package-generated.notifier";
 import { ProcessSessionUseCase } from "./app/usecases/process.session.usecase";
@@ -9,6 +10,7 @@ export function bootstrap() {
   const stateTable = process.env.GENERATION_STATE_TABLE;
   const analysisTable = process.env.ANALYSIS_RESULTS_TABLE;
   const packagesTable = process.env.CONVERSATION_PACKAGES_TABLE;
+  const usersTable = process.env.CONVERSATION_USERS_TABLE ?? "";
   const topicArn = process.env.PACKAGE_GENERATED_TOPIC_ARN;
   const projectName = process.env.PROJECT_NAME ?? "eislett-education";
   const environment = process.env.ENVIRONMENT ?? "dev";
@@ -22,6 +24,7 @@ export function bootstrap() {
   const stateRepo = new GenerationStateRepository(stateTable);
   const analysisRepo = new AnalysisResultRepository(analysisTable);
   const packageRepo = new UserPackageRepository(packagesTable);
+  const profileRepo = new UserProfileRepository(usersTable);
   const openai = new PackageGenerationOpenAIClient();
   const packageGeneratedNotifier = topicArn ? new SNSPackageGeneratedNotifier(topicArn) : undefined;
 
@@ -35,6 +38,7 @@ export function bootstrap() {
     stateRepo,
     analysisRepo,
     packageRepo,
+    profileRepo,
     openai,
     packageGeneratedNotifier
   );
