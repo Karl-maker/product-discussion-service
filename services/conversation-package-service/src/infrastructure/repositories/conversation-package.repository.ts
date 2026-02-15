@@ -173,7 +173,6 @@ export class ConversationPackageRepository {
     const pageSize = pagination.pageSize;
     const pageNumber = pagination.pageNumber;
     const currentUserId = options?.currentUserId;
-    const onlyUserPackages = options?.onlyUserPackages === true;
 
     const filterExpressions: string[] = [];
     const expressionAttributeValues: Record<string, unknown> = {};
