@@ -1,0 +1,26 @@
+{
+  "name": "@services/package-notice-service",
+  "version": "1.0.0",
+  "description": "EventBridge-triggered Lambda: finds latest package per user, sends lesson notice via SQS (max 100 users/run, skip if notice sent in 7 days)",
+  "main": "dist/handler/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "package": "esbuild src/handler/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js && zip function.zip dist/index.js",
+    "deploy": "echo Deploying package-notice-service..."
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.975.0",
+    "@aws-sdk/client-sqs": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.975.0",
+    "aws-lambda": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.160",
+    "@types/node": "^25.0.10",
+    "esbuild": "^0.27.2",
+    "typescript": "^5.9.3"
+  }
+}
