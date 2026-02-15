@@ -43,7 +43,7 @@ export class PackageGenerationOpenAIClient {
     const userPrompt = buildUserPrompt(input);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+    const timeoutId = setTimeout(() => controller.abort(), 150_000);
 
     let response: Awaited<ReturnType<typeof fetch>>;
     try {
