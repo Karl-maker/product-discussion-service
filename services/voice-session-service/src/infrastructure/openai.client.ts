@@ -11,13 +11,20 @@ export interface CreateSessionInput {
 export interface CreateSessionOptions {
   /** When true, request output_modalities: ["text"] (no audio from model); default = audio output */
   textOnlyOutput?: boolean;
+  /** When true, use gpt-4o-realtime-preview (stronger) instead of gpt-4o-mini-realtime-preview */
+  useStrongerModel?: boolean;
 }
 
 export interface CreateSessionOutput {
   client_secret: string;
   expires_at: string;
   session_id: string;
+  /** Model used for this session (for client to connect with same model) */
+  model: string;
 }
+
+const MODEL_MINI = "gpt-4o-mini-realtime-preview";
+const MODEL_STRONGER = "gpt-4o-realtime-preview";
 
 export class OpenAIClient {
   private apiKey: string | null = null;
@@ -55,8 +62,9 @@ export class OpenAIClient {
       throw new Error("OpenAIClient not initialized");
     }
 
+    const model = options.useStrongerModel === true ? MODEL_STRONGER : MODEL_MINI;
     const payload: Record<string, unknown> = {
-      model: "gpt-4o-mini-realtime-preview",
+      model,
       instructions,
       voice: "coral",
       // Lower = more controlled, less fast / excitable speech
@@ -97,6 +105,7 @@ export class OpenAIClient {
       client_secret: session.client_secret.value,
       expires_at: session.expires_at,
       session_id: finalSessionId,
+      model,
     };
   }
 }
