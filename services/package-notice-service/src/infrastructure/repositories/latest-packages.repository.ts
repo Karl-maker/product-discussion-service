@@ -7,7 +7,7 @@ export interface LatestPackageForUser {
   name: string;
   description?: string;
   targetLanguage: string;
-  updatedAt: string;
+  createdAt: string;
   notes?: { title?: string; details?: string; content?: string };
 }
 
@@ -16,7 +16,7 @@ const MAX_USERS = 100;
 
 /**
  * Scans conversation packages table for items with userId,
- * groups by userId keeping the latest (by updatedAt) per user,
+ * groups by userId keeping the latest (by createdAt — most recently created) per user,
  * returns up to MAX_USERS users.
  */
 export class LatestPackagesRepository {
@@ -60,16 +60,16 @@ export class LatestPackagesRepository {
       for (const item of items) {
         const userId = item.userId;
         if (!userId || typeof userId !== "string") continue;
-        const updatedAt = item.updatedAt ?? item.createdAt ?? "";
+        const createdAt = item.createdAt ?? "";
         const existing = byUser.get(userId);
-        if (!existing || updatedAt > existing.updatedAt) {
+        if (!existing || createdAt > existing.createdAt) {
           byUser.set(userId, {
             userId,
             packageId: item.id ?? "",
             name: typeof item.name === "string" ? item.name : "Lesson",
             description: typeof item.description === "string" ? item.description : undefined,
             targetLanguage: typeof item.targetLanguage === "string" ? item.targetLanguage : "",
-            updatedAt,
+            createdAt,
             notes: item.notes,
           });
         }

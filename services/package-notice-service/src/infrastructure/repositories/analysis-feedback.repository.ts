@@ -29,7 +29,7 @@ export class AnalysisFeedbackRepository {
       })
     );
 
-    const feedback: string[] = [];
+    const raw: string[] = [];
     const items = (result.Items ?? []) as Array<{
       result?: { feedback?: Array<{ content?: string }> };
     }>;
@@ -39,11 +39,26 @@ export class AnalysisFeedbackRepository {
       if (!Array.isArray(list)) continue;
       for (const f of list) {
         if (typeof f.content === "string" && f.content.trim()) {
-          feedback.push(f.content.trim());
-          if (feedback.length >= limit) return feedback;
+          raw.push(f.content.trim());
         }
       }
     }
-    return feedback;
+
+    return dropCloseDuplicates(raw, limit);
   }
+}
+
+/** Keep first occurrence of each feedback; drop exact and close duplicates (case-insensitive, normalized whitespace). */
+function dropCloseDuplicates(feedback: string[], limit: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of feedback) {
+    const key = s.toLowerCase().replace(/\s+/g, " ").trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      out.push(s);
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
 }

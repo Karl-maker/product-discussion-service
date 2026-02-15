@@ -33,7 +33,7 @@ export class SendNoticesUseCase {
       const header = `Start Practicing ${languageLabel}: ${pkg.name}`;
       const description = pkg.description ?? "Your next lesson is ready to practice.";
       const note = pkg.notes?.details ?? pkg.notes?.content ?? undefined;
-      const lessonUrl = `${process.env.APP_BASE_URL ?? "https://app.wittytalk.ai"}/learn`;
+      const lessonUrl = (process.env.APP_BASE_URL ?? "https://app.wittytalk.ai").trim().replace(/\/$/, "") || "https://app.wittytalk.ai";
 
       await this.emailQueue.sendLessonNotice({
         template: "lesson.hbs",
