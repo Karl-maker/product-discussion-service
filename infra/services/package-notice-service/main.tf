@@ -70,7 +70,8 @@ module "package_notice_iam_role" {
   }
 }
 
-# Policy: read conversation packages + analysis results (same table names as conversation-service)
+# Policy: read conversation packages + analysis results (same table names as conversation-service).
+# Include GSI so Lambda can Scan/Query userId-createdAt-index for latest package per user.
 resource "aws_iam_role_policy" "dynamodb_read" {
   name   = "package-notice-dynamodb-read-${var.environment}"
   role   = module.package_notice_iam_role.role_name
@@ -82,6 +83,7 @@ resource "aws_iam_role_policy" "dynamodb_read" {
         Action   = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:BatchGetItem"]
         Resource = [
           "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}",
+          "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}/index/userId-createdAt-index",
           "arn:aws:dynamodb:*:*:table/${local.analysis_results_table_name}",
         ]
       },

@@ -96,7 +96,8 @@ module "package_generation_iam_role" {
   }
 }
 
-# Policy: read analysis results, read+write conversation packages (same table names as conversation-service)
+# Policy: read analysis results, read+write conversation packages (same table names as conversation-service).
+# Include GSI so Lambda can Query by userId+createdAt for latest package.
 resource "aws_iam_role_policy" "dynamodb_tables" {
   name   = "package-generation-dynamodb-${var.environment}"
   role   = module.package_generation_iam_role.role_name
@@ -108,6 +109,7 @@ resource "aws_iam_role_policy" "dynamodb_tables" {
         Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem"]
         Resource = [
           "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}",
+          "arn:aws:dynamodb:*:*:table/${local.conversation_packages_table_name}/index/userId-createdAt-index",
           "arn:aws:dynamodb:*:*:table/${local.analysis_results_table_name}",
         ]
       },
