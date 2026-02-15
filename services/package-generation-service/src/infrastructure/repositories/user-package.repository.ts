@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { GeneratedPackage } from "../../domain/types";
 
 /** Stored package item (matches conversation-package-service table shape). */
@@ -31,17 +31,20 @@ export class UserPackageRepository {
     });
   }
 
-  /** Find the user's package for this targetLanguage (at most one). Case-insensitive via targetLanguageNorm; falls back to exact match for items without norm. */
+  /** Find the user's latest package for this targetLanguage by createdAt (Query on GSI). Case-insensitive via targetLanguageNorm. */
   async findByUserIdAndLanguage(userId: string, targetLanguage: string): Promise<StoredPackage | null> {
     const tlNorm = (targetLanguage || "").trim().toLowerCase();
     const tlExact = (targetLanguage || "").trim();
     const result = await this.client.send(
-      new ScanCommand({
+      new QueryCommand({
         TableName: this.tableName,
-        FilterExpression: "#uid = :uid AND (#tlNorm = :tlNorm OR (attribute_not_exists(#tlNorm) AND #tl = :tl))",
+        IndexName: "userId-createdAt-index",
+        KeyConditionExpression: "#uid = :uid",
+        FilterExpression: "#tlNorm = :tlNorm OR (attribute_not_exists(#tlNorm) AND #tl = :tl)",
         ExpressionAttributeNames: { "#uid": "userId", "#tl": "targetLanguage", "#tlNorm": "targetLanguageNorm" },
         ExpressionAttributeValues: { ":uid": userId, ":tlNorm": tlNorm, ":tl": tlExact },
-        Limit: 2,
+        ScanIndexForward: false,
+        Limit: 1,
       })
     );
     const items = (result.Items ?? []) as Array<Record<string, unknown>>;

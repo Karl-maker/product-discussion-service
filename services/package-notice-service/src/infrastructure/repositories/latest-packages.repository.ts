@@ -14,10 +14,23 @@ export interface LatestPackageForUser {
 const BATCH_SIZE = 500;
 const MAX_USERS = 100;
 
+const GSI_NAME = "userId-createdAt-index";
+
+type ScanItem = {
+  id?: string;
+  userId?: string;
+  name?: string;
+  description?: string;
+  targetLanguage?: string;
+  updatedAt?: string;
+  createdAt?: string;
+  notes?: { title?: string; details?: string; content?: string };
+};
+
 /**
- * Scans conversation packages table for items with userId,
- * groups by userId keeping the latest (by createdAt — most recently created) per user,
- * returns up to MAX_USERS users.
+ * Scans the userId-createdAt-index GSI so items are keyed by userId and createdAt,
+ * groups by userId keeping the latest (by createdAt) per user,
+ * then returns up to MAX_USERS users with the most recently created package.
  */
 export class LatestPackagesRepository {
   private readonly tableName: string;
@@ -39,23 +52,13 @@ export class LatestPackagesRepository {
       const result = await this.client.send(
         new ScanCommand({
           TableName: this.tableName,
-          FilterExpression: "attribute_exists(#uid)",
-          ExpressionAttributeNames: { "#uid": "userId" },
+          IndexName: GSI_NAME,
           Limit: BATCH_SIZE,
           ExclusiveStartKey: lastKey,
         })
       );
 
-      const items = (result.Items ?? []) as Array<{
-        id?: string;
-        userId?: string;
-        name?: string;
-        description?: string;
-        targetLanguage?: string;
-        updatedAt?: string;
-        createdAt?: string;
-        notes?: { title?: string; details?: string; content?: string };
-      }>;
+      const items = (result.Items ?? []) as ScanItem[];
 
       for (const item of items) {
         const userId = item.userId;
@@ -76,9 +79,10 @@ export class LatestPackagesRepository {
       }
 
       lastKey = result.LastEvaluatedKey;
-      if (byUser.size >= MAX_USERS) break;
     } while (lastKey);
 
-    return Array.from(byUser.values()).slice(0, MAX_USERS);
+    return Array.from(byUser.values())
+      .sort((a, b) => (b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : 0))
+      .slice(0, MAX_USERS);
   }
 }

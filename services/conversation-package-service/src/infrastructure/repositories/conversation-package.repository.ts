@@ -4,6 +4,7 @@ import {
   PutCommand,
   GetCommand,
   ScanCommand,
+  QueryCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type {
@@ -103,6 +104,77 @@ export class ConversationPackageRepository {
       throw new Error("pageNumber must be >= 1");
     }
 
+    if (onlyUserPackages && currentUserId) {
+      return this.listMine(currentUserId, filters, pageSize, pageNumber);
+    }
+
+    return this.listScan(filters, pagination, options);
+  }
+
+  /** List current user's packages via GSI: filter by userId + optional language, sorted by createdAt (newest first), paginated. */
+  private async listMine(
+    userId: string,
+    filters: ConversationPackageFilters,
+    pageSize: number,
+    pageNumber: number
+  ): Promise<PaginatedResult<ConversationPackage>> {
+    const limit = pageSize * pageNumber;
+    const expressionAttributeValues: Record<string, unknown> = { ":uid": userId };
+    const expressionAttributeNames: Record<string, string> = { "#uid": "userId" };
+    let filterExpression: string | undefined;
+
+    if (filters.language) {
+      const langNorm = filters.language.trim().toLowerCase();
+      const langExact = filters.language.trim();
+      expressionAttributeNames["#tl"] = "targetLanguage";
+      expressionAttributeNames["#tlNorm"] = "targetLanguageNorm";
+      expressionAttributeValues[":norm"] = langNorm;
+      expressionAttributeValues[":lang"] = langExact;
+      filterExpression = "(#tlNorm = :norm OR (attribute_not_exists(#tlNorm) AND #tl = :lang))";
+    }
+    if (filters.category) {
+      expressionAttributeValues[":category"] = filters.category;
+      expressionAttributeNames["#cat"] = "category";
+      filterExpression = filterExpression
+        ? `${filterExpression} AND #cat = :category`
+        : "#cat = :category";
+    }
+
+    const result = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: "userId-createdAt-index",
+        KeyConditionExpression: "#uid = :uid",
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ...(filterExpression && { FilterExpression: filterExpression }),
+        ScanIndexForward: false,
+        Limit: limit,
+      })
+    );
+
+    const items = (result.Items || []).map((item) => this.mapToDomain(item));
+    const startIndex = (pageNumber - 1) * pageSize;
+    const paginatedItems = items.slice(startIndex, pageNumber * pageSize);
+    const gotFullPage = result.Items?.length === limit;
+
+    return {
+      items: paginatedItems,
+      total: (pageNumber - 1) * pageSize + items.length,
+      hasMore: gotFullPage,
+    };
+  }
+
+  private async listScan(
+    filters: ConversationPackageFilters,
+    pagination: Pagination,
+    options?: ListOptions
+  ): Promise<PaginatedResult<ConversationPackage>> {
+    const pageSize = pagination.pageSize;
+    const pageNumber = pagination.pageNumber;
+    const currentUserId = options?.currentUserId;
+    const onlyUserPackages = options?.onlyUserPackages === true;
+
     const filterExpressions: string[] = [];
     const expressionAttributeValues: Record<string, unknown> = {};
     const expressionAttributeNames: Record<string, string> = {};
@@ -121,22 +193,29 @@ export class ConversationPackageRepository {
       filterExpressions.push("(#tlNorm = :norm OR (attribute_not_exists(#tlNorm) AND #tl = :lang))");
     }
 
-    const result = await this.client.send(
-      new ScanCommand({
-        TableName: this.tableName,
-        ...(filterExpressions.length > 0 && {
-          FilterExpression: filterExpressions.join(" AND "),
-          ExpressionAttributeValues: expressionAttributeValues,
-          ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
-        }),
-        Limit: pageSize * pageNumber * 3,
-      })
-    );
-    let items = (result.Items || []).map((item) => this.mapToDomain(item));
+    const scanLimit = pageSize * pageNumber * 3;
+    let items: ConversationPackage[] = [];
+    let lastKey: Record<string, unknown> | undefined;
 
-    // User-specific packages: exclude unless JWT present and owner; if onlyUserPackages, keep only mine
+    do {
+      const result = await this.client.send(
+        new ScanCommand({
+          TableName: this.tableName,
+          ...(filterExpressions.length > 0 && {
+            FilterExpression: filterExpressions.join(" AND "),
+            ExpressionAttributeValues: expressionAttributeValues,
+            ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
+          }),
+          Limit: scanLimit,
+          ExclusiveStartKey: lastKey,
+        })
+      );
+      items = items.concat((result.Items || []).map((item) => this.mapToDomain(item)));
+      lastKey = result.LastEvaluatedKey;
+      if (items.length >= scanLimit) break;
+    } while (lastKey);
+
     items = items.filter((p) => {
-      if (onlyUserPackages) return currentUserId !== undefined && p.userId === currentUserId;
       if (p.userId) return currentUserId !== undefined && p.userId === currentUserId;
       return true;
     });
