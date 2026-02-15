@@ -139,7 +139,7 @@ resource "aws_lambda_permission" "eventbridge" {
 # Lambda
 resource "aws_lambda_function" "package_notice" {
   function_name = "package-notice-${var.environment}-service"
-  handler       = "dist/index.handler"
+  handler       = "index.handler"
   runtime       = "nodejs20.x"
   timeout       = 120
   memory_size   = 256
