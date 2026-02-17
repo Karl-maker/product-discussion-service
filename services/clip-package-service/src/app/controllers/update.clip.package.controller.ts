@@ -9,6 +9,8 @@ function parseUsedWords(raw: unknown): UsedWord[] | undefined {
     const o = (x as Record<string, unknown>) ?? {};
     return {
       word: String(o.word ?? ""),
+      pronunciation: String(o.pronunciation ?? ""),
+      meaning: String(o.meaning ?? ""),
       timestamp: String(o.timestamp ?? ""),
     };
   });

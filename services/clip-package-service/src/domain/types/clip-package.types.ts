@@ -1,6 +1,8 @@
-/** Matches analysis results: word + timestamp of where it occurred (e.g. in transcript). */
+/** Matches analytics/analysis wordsUsed returned to the client, plus timestamp of where it occurred. */
 export interface UsedWord {
   word: string;
+  pronunciation: string;
+  meaning: string;
   timestamp: string;
 }
 
