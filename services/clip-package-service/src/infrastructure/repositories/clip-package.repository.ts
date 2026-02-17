@@ -130,10 +130,6 @@ export class DynamoDBClipPackageRepository implements ClipPackageRepository {
       ...updates,
       updatedAt: now,
     };
-    if (updates.language !== undefined) {
-      (updated as Record<string, unknown>).language = (updates.language || "").trim().toLowerCase();
-      (updated as Record<string, unknown>).languageOriginal = updates.language;
-    }
     const item = toItem(updated);
     await this.client.send(
       new PutCommand({
