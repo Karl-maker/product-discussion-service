@@ -34,14 +34,14 @@ export class ProcessSessionUseCase {
       return;
     }
 
-    const lastProcessedAt = await this.stateRepo.getLastProcessedAt(userId, targetLanguage);
-    if (lastProcessedAt) {
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-      if (new Date(lastProcessedAt).getTime() > oneHourAgo) {
-        console.info("Package generation: skipping – same user+targetLanguage processed within last hour", { userId, targetLanguage, lastProcessedAt });
-        return;
-      }
+    const todayUtc = new Date().toISOString().slice(0, 10);
+    const lastLessonDate = await this.stateRepo.getLastLessonDate(userId);
+    if (lastLessonDate === todayUtc) {
+      console.info("Package generation: skipping – already generated one lesson for this user today (1 per user per day)", { userId, lastLessonDate });
+      return;
     }
+
+    const lastProcessedAt = await this.stateRepo.getLastProcessedAt(userId, targetLanguage);
     const allResults = await this.analysisRepo.listByUserId(userId, 500);
     const resultsSinceLast = lastProcessedAt
       ? allResults.filter((r) => r.createdAt > lastProcessedAt)
@@ -82,6 +82,7 @@ export class ProcessSessionUseCase {
 
     await this.packageRepo.save(toSave);
     await this.stateRepo.setLastProcessedAt(userId, targetLanguage, now);
+    await this.stateRepo.setLastLessonDate(userId, todayUtc);
 
     if (this.packageGeneratedNotifier) {
       await this.packageGeneratedNotifier.notify(toSave, !!existingPackage);

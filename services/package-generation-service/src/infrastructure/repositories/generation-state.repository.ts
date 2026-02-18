@@ -45,4 +45,33 @@ export class GenerationStateRepository {
       })
     );
   }
+
+  /** Last calendar day (UTC) we generated a lesson for this user. Used for 1-lesson-per-user-per-day limit. */
+  async getLastLessonDate(userId: string): Promise<string | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: "LAST_LESSON_DAY",
+        },
+      })
+    );
+    const date = result.Item?.lastLessonDate;
+    return typeof date === "string" ? date : null;
+  }
+
+  /** Set the last calendar day (UTC) we generated a lesson for this user. */
+  async setLastLessonDate(userId: string, date: string): Promise<void> {
+    await this.client.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          PK: `USER#${userId}`,
+          SK: "LAST_LESSON_DAY",
+          lastLessonDate: date,
+        },
+      })
+    );
+  }
 }
