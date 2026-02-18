@@ -27,13 +27,13 @@ jobs:
         run: npm install
 
       - name: Build
-        run: npx turbo run build --filter=@services/conversation-package-service --filter=@services/conversation-user-service --filter=@services/voice-session-service --filter=@services/package-generation-service --filter=@services/package-notice-service --filter=@services/clip-package-service
+        run: npx turbo run build --filter=@services/conversation-package-service --filter=@services/conversation-user-service --filter=@services/voice-session-service --filter=@services/package-generation-service --filter=@services/package-notice-service --filter=@services/clip-package-service --filter=@services/clip-results-service
 
       - name: Package
-        run: npx turbo run package --filter=@services/conversation-package-service --filter=@services/conversation-user-service --filter=@services/voice-session-service --filter=@services/package-generation-service --filter=@services/package-notice-service --filter=@services/clip-package-service
+        run: npx turbo run package --filter=@services/conversation-package-service --filter=@services/conversation-user-service --filter=@services/voice-session-service --filter=@services/package-generation-service --filter=@services/package-notice-service --filter=@services/clip-package-service --filter=@services/clip-results-service
 
       - name: Deploy (dry run)
-        run: npx turbo run deploy --filter=@services/conversation-package-service --filter=@services/conversation-user-service --filter=@services/voice-session-service --filter=@services/package-generation-service --filter=@services/package-notice-service --filter=@services/clip-package-service
+        run: npx turbo run deploy --filter=@services/conversation-package-service --filter=@services/conversation-user-service --filter=@services/voice-session-service --filter=@services/package-generation-service --filter=@services/package-notice-service --filter=@services/clip-package-service --filter=@services/clip-results-service
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -66,7 +66,7 @@ jobs:
       - name: Bootstrap Terraform backend
         run: |
           PROJECT_NAME="${{ steps.project.outputs.project_name }}"
-          SERVICES="voice-session-service conversation-service conversation-user-service package-generation-service package-notice-service clip-package-service"
+          SERVICES="voice-session-service conversation-service conversation-user-service package-generation-service package-notice-service clip-package-service clip-results-service"
           for service in $SERVICES; do
             export BUCKET="${PROJECT_NAME}-${{ steps.env.outputs.environment }}-${service}-state"
             export TABLE="${PROJECT_NAME}-${{ steps.env.outputs.environment }}-${service}-state-locking"
@@ -172,6 +172,23 @@ jobs:
 
           # Deploy clip-package-service (S3 clip bucket + CDN, DynamoDB clip packages, API /clip-packages)
           service="clip-package-service"
+          if [ -f "services/$service/function.zip" ]; then
+            terraform -chdir=infra/services/$service init \
+              -backend-config="bucket=${PROJECT_NAME}-${{ steps.env.outputs.environment }}-${service}-state" \
+              -backend-config="key=tf-infra/${{ steps.env.outputs.environment }}.tfstate" \
+              -backend-config="region=us-east-1" \
+              -backend-config="dynamodb_table=${PROJECT_NAME}-${{ steps.env.outputs.environment }}-${service}-state-locking" \
+              -backend-config="encrypt=true"
+            terraform -chdir=infra/services/$service apply -auto-approve \
+              -var="project_name=${PROJECT_NAME}" \
+              -var="environment=${{ steps.env.outputs.environment }}" \
+              -var="state_bucket_name=${{ secrets.TF_STATE_BUCKET_NAME }}" \
+              -var="state_region=${{ secrets.TF_STATE_REGION }}" \
+              -var="state_bucket_key=${{ secrets.TF_STATE_BUCKET_KEY }}"
+          fi
+
+          # Deploy clip-results-service (DynamoDB clip results/likes, API /clip-results)
+          service="clip-results-service"
           if [ -f "services/$service/function.zip" ]; then
             terraform -chdir=infra/services/$service init \
               -backend-config="bucket=${PROJECT_NAME}-${{ steps.env.outputs.environment }}-${service}-state" \
